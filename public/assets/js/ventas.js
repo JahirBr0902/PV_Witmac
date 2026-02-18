@@ -382,7 +382,7 @@ function validarMontoPagado() {
         saldoContainer.style.display = 'none';
     }
     
-    if (montoPagado > 0 && metodoPago) {
+    if (montoPagado >= 0 && metodoPago) {
         btnCompletar.disabled = false;
     } else {
         btnCompletar.disabled = true;
