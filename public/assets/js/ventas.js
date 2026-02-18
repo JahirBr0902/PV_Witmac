@@ -197,7 +197,9 @@ async function searchProducts(query) {
 
 function addToCart(producto) {
     // Verificar si el producto ya está en el carrito
-    const existingItem = cart.find(item => item.id === producto.id);
+const productId = parseInt(producto.id);
+const existingItem = cart.find(item => item.id === productId);
+
     
     if (existingItem) {
         if (existingItem.cantidad < producto.stock) {
@@ -214,7 +216,7 @@ function addToCart(producto) {
     } else {
         if (producto.stock > 0) {
             cart.push({
-                id: producto.id,
+                id: productId,
                 codigo: producto.codigo,
                 nombre: producto.nombre,
                 precio_venta: parseFloat(producto.precio_venta),

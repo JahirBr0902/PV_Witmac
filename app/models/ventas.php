@@ -229,44 +229,44 @@ class Ventas extends BaseModel
 
 
     public function registrarAbono($venta_id, $monto_abono)
-{
-    try {
-        $this->db->beginTransaction();
+    {
+        try {
+            $this->db->beginTransaction();
 
-        // 1. Obtener la venta actual con lock para evitar condiciones de carrera
-        $stmt = $this->db->prepare("
+            // 1. Obtener la venta actual con lock para evitar condiciones de carrera
+            $stmt = $this->db->prepare("
             SELECT id, folio, total, monto_pagado, saldo, estado 
             FROM ventas 
             WHERE id = :id 
             FOR UPDATE
         ");
-        $stmt->execute(['id' => $venta_id]);
-        $venta = $stmt->fetch();
+            $stmt->execute(['id' => $venta_id]);
+            $venta = $stmt->fetch();
 
-        if (!$venta) {
-            throw new Exception("Venta no encontrada");
-        }
+            if (!$venta) {
+                throw new Exception("Venta no encontrada");
+            }
 
-        // 2. Validaciones
-        if ($venta['estado'] === 'completada') {
-            throw new Exception("La venta ya está completamente pagada");
-        }
+            // 2. Validaciones
+            if ($venta['estado'] === 'completada') {
+                throw new Exception("La venta ya está completamente pagada");
+            }
 
-        if ($monto_abono <= 0) {
-            throw new Exception("El monto del abono debe ser mayor a cero");
-        }
+            if ($monto_abono <= 0) {
+                throw new Exception("El monto del abono debe ser mayor a cero");
+            }
 
-        if ($monto_abono > $venta['saldo']) {
-            throw new Exception("El abono no puede ser mayor al saldo pendiente ($" . number_format($venta['saldo'], 2) . ")");
-        }
+            if ($monto_abono > $venta['saldo']) {
+                throw new Exception("El abono no puede ser mayor al saldo pendiente ($" . number_format($venta['saldo'], 2) . ")");
+            }
 
-        // 3. Calcular nuevos valores
-        $nuevo_monto_pagado = $venta['monto_pagado'] + $monto_abono;
-        $nuevo_saldo = $venta['saldo'] - $monto_abono;
-        $nuevo_estado = ($nuevo_saldo == 0) ? 'completada' : 'pendiente';
+            // 3. Calcular nuevos valores
+            $nuevo_monto_pagado = $venta['monto_pagado'] + $monto_abono;
+            $nuevo_saldo = $venta['saldo'] - $monto_abono;
+            $nuevo_estado = ($nuevo_saldo == 0) ? 'completada' : 'pendiente';
 
-        // 4. Actualizar la venta (solo actualizamos los campos existentes)
-        $stmt = $this->db->prepare("
+            // 4. Actualizar la venta (solo actualizamos los campos existentes)
+            $stmt = $this->db->prepare("
             UPDATE ventas 
             SET monto_pagado = :monto_pagado,
                 saldo = :saldo,
@@ -274,31 +274,30 @@ class Ventas extends BaseModel
             WHERE id = :id
         ");
 
-        $stmt->execute([
-            'monto_pagado' => $nuevo_monto_pagado,
-            'saldo' => $nuevo_saldo,
-            'estado' => $nuevo_estado,
-            'id' => $venta_id
-        ]);
+            $stmt->execute([
+                'monto_pagado' => $nuevo_monto_pagado,
+                'saldo' => $nuevo_saldo,
+                'estado' => $nuevo_estado,
+                'id' => $venta_id
+            ]);
 
-        $this->db->commit();
+            $this->db->commit();
 
-        return [
-            'success' => true,
-            'venta_id' => $venta_id,
-            'folio' => $venta['folio'],
-            'abono' => $monto_abono,
-            'nuevo_monto_pagado' => $nuevo_monto_pagado,
-            'nuevo_saldo' => $nuevo_saldo,
-            'nuevo_estado' => $nuevo_estado,
-            'mensaje' => $nuevo_estado === 'completada' ? 
-                '¡Venta liquidada completamente!' : 
-                'Abono registrado correctamente'
-        ];
-
-    } catch (Exception $e) {
-        $this->db->rollBack();
-        throw $e;
+            return [
+                'success' => true,
+                'venta_id' => $venta_id,
+                'folio' => $venta['folio'],
+                'abono' => $monto_abono,
+                'nuevo_monto_pagado' => $nuevo_monto_pagado,
+                'nuevo_saldo' => $nuevo_saldo,
+                'nuevo_estado' => $nuevo_estado,
+                'mensaje' => $nuevo_estado === 'completada' ?
+                    '¡Venta liquidada completamente!' :
+                    'Abono registrado correctamente'
+            ];
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
-}
 }

@@ -107,7 +107,6 @@ class ventasController
     {
         $body = getBody();
 
-        // Validar campos requeridos
         $required = ['venta_id', 'monto'];
         validate($body, $required);
 
