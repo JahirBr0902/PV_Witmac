@@ -285,12 +285,18 @@ function hideLoading() {
 async function loadProductos() {
   const content = document.getElementById("pageContent");
   content.innerHTML = `
-        <div class="fade-in">
+<div class="fade-in">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="bi bi-box"></i> Productos</h2>
-                <button class="btn btn-primary" onclick="showProductoModal()">
-                    <i class="bi bi-plus-circle"></i> Nuevo Producto
-                </button>
+                <div class="d-flex gap-2">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchProductosInput" class="form-control" placeholder="Buscar producto..." onkeyup="filtrarProductos()">
+                    </div>
+                    <button class="btn btn-primary" onclick="showProductoModal()" style="min-width: 160px;">
+                        <i class="bi bi-plus-circle"></i> Nuevo Producto
+                    </button>
+                </div>
             </div>
             
             <div class="card">
@@ -314,6 +320,7 @@ async function loadProductos() {
                     </div>
                 </div>
             </div>
+        </div>>
         </div>
         
         <!-- Modal Producto -->
@@ -640,4 +647,31 @@ async function ajustarStock() {
   } catch (error) {
     console.error("Error:", error);
   }
+}
+
+
+function filtrarProductos() {
+    const input = document.getElementById('searchProductosInput');
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById('productosTableBody');
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        // Buscamos en las columnas de Código (índice 0) y Nombre (índice 1)
+        const cellCodigo = row.getElementsByTagName('td')[0];
+        const cellNombre = row.getElementsByTagName('td')[1];
+        
+        if (cellCodigo && cellNombre) {
+            const textCodigo = cellCodigo.textContent || cellCodigo.innerText;
+            const textNombre = cellNombre.textContent || cellNombre.innerText;
+            
+            if (textCodigo.toLowerCase().indexOf(filter) > -1 || 
+                textNombre.toLowerCase().indexOf(filter) > -1) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        }
+    }
 }

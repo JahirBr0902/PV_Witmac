@@ -69,18 +69,16 @@ class inventarioController
 
     
 
-
     public function listar()
     {
         $body = getBody();
 
         try {
             if (isset($body['producto_id'])) {
-                // Capturamos las fechas si vienen en la petición
+    
                 $fechaInicio = isset($body['fechaInicio']) ? $body['fechaInicio'] : null;
                 $fechaFin = isset($body['fechaFin']) ? $body['fechaFin'] : null;
                 
-                // Pasamos los 3 parámetros al modelo
                 $data = $this->model->getMovimientosPorProducto((int)$body['producto_id'], $fechaInicio, $fechaFin);
             } else {
                 $data = $this->model->getTodos();
