@@ -1119,3 +1119,4 @@ async function toggleUsuarioEstado(id, nuevoEstado) {
     Swal.fire("Error", "No se pudo actualizar el estado", "error");
   }
 }
+

@@ -103,4 +103,73 @@ public function registrarMovimiento($producto_id, $tipo, $cantidad, $motivo, $us
         ");
         return $stmt->fetchAll();
     }
+
+    public function getReporteCompleto() {
+        $stmt = $this->db->query("
+            SELECT 
+                p.id,
+                p.codigo,
+                p.nombre,
+                p.stock,
+                p.stock_minimo,
+                COALESCE(v.cantidad_vendida, 0) as cantidad_vendida,
+                CASE 
+                    WHEN p.stock <= 0 THEN 'Agotado'
+                    WHEN p.stock <= p.stock_minimo THEN 'Bajo'
+                    ELSE 'Normal'
+                END as estado
+            FROM productos p
+            LEFT JOIN (
+                SELECT dv.producto_id, SUM(dv.cantidad) as cantidad_vendida
+                FROM detalle_ventas dv
+                INNER JOIN ventas v ON dv.venta_id = v.id
+                WHERE v.estado = 'completada'
+                GROUP BY dv.producto_id
+            ) v ON p.id = v.producto_id
+            WHERE p.activo = true
+            ORDER BY p.nombre ASC
+        ");
+        return $stmt->fetchAll();
+    }
+    public function getReportePorFechas($fechaInicio, $fechaFin) {
+        $stmt = $this->db->prepare("
+            SELECT 
+                p.id, p.codigo, p.nombre, p.stock, p.stock_minimo, p.precio_compra, p.precio_venta,
+                COALESCE(v.cantidad_vendida, 0) as cantidad_vendida,
+                COALESCE(v.total_vendido, 0) as total_vendido,
+                COALESCE(v.cantidad_vendida * p.precio_venta, 0) as ganancia,
+                (p.stock * p.precio_venta) as valor_stock_costo,
+                CASE 
+                    WHEN p.stock <= 0 THEN 'Agotado'
+                    WHEN p.stock <= p.stock_minimo THEN 'Bajo'
+                    ELSE 'Normal'
+                END as estado
+            FROM productos p
+            LEFT JOIN (
+                SELECT dv.producto_id, 
+                       SUM(dv.cantidad) as cantidad_vendida,
+                       SUM(dv.subtotal) as total_vendido
+                FROM detalle_ventas dv
+                INNER JOIN ventas v ON dv.venta_id = v.id
+                WHERE v.estado = 'completada' 
+                  AND DATE(v.fecha_venta) BETWEEN :fechaInicio AND :fechaFin
+                GROUP BY dv.producto_id
+            ) v ON p.id = v.producto_id
+            WHERE p.activo = true
+            ORDER BY 
+                CASE 
+                    WHEN p.stock <= 0 THEN 1
+                    WHEN p.stock <= p.stock_minimo THEN 2
+                    ELSE 3
+                END,
+                p.nombre ASC
+        ");
+        
+        $stmt->execute([
+            'fechaInicio' => $fechaInicio, 
+            'fechaFin' => $fechaFin
+        ]);
+        
+        return $stmt->fetchAll();
+    }
 }

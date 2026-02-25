@@ -104,6 +104,10 @@ try {
                     $inventario->resumenStock();
                     break;
 
+                case 'reporte':
+                    $inventario->reporteCompleto();
+                    break;
+                    
                 default:
                     http_response_code(404);
                     echo json_encode(['error' => 'Acción de inventario no encontrada']);

@@ -52,6 +52,22 @@ class inventarioController
         }
     }
 
+    public function reporteCompleto()
+    {
+        $body = getBody();
+        // Por defecto, carga los últimos 30 días si no hay fechas
+        $fechaInicio = $body['fechaInicio'] ?? date('Y-m-d', strtotime('-30 days'));
+        $fechaFin = $body['fechaFin'] ?? date('Y-m-d');
+        
+        try {
+            $data = $this->model->getReportePorFechas($fechaInicio, $fechaFin);
+            response(['success' => true, 'data' => $data]);
+        } catch (Exception $e) {
+            error($e->getMessage());
+        }
+    }
+
+    
 
     public function listar()
     {

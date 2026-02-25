@@ -100,6 +100,9 @@ function loadPage(page) {
     case "usuarios":
       loadUsuarios();
       break;
+    case "inventario":
+      loadInventario();
+      break;
   }
 }
 

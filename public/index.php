@@ -40,6 +40,13 @@ checkAuth();
                             <i class="bi bi-box"></i> Productos
                         </a>
                     </li>
+                    <?php if ($_SESSION['rol'] === 'admin'): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="inventario">
+                            <i class="bi bi-person-badge"></i> Inventario
+                        </a>
+                    </li>
+                    <?php endif; ?>
                     <?php endif; ?>
                     <li class="nav-item">
                         <a class="nav-link" href="#" data-page="clientes">
@@ -94,5 +101,6 @@ checkAuth();
     <script src="assets/js/main.js"></script>
     <script src="assets/js/ventas.js"></script>
     <script src="assets/js/modules.js"></script>
+    <script src="assets/js/inventarios.js"></script>
 </body>
 </html>
