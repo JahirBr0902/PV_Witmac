@@ -70,8 +70,8 @@ class ventasController
             $monto_pagado = (float)($body['monto_pagado'] ?? 0);
             $vendedor_id = $_SESSION['usuario_id'];
 
-            if ($monto_pagado <= 0) {
-                error('El monto pagado debe ser mayor a cero', 400);
+            if ($monto_pagado < 0) {
+                error('El monto pagado debe ser mayor o igual a cero', 400);
             }
 
             $result = $this->model->crearVentaCompleta(
@@ -114,8 +114,8 @@ class ventasController
             $venta_id = (int)$body['venta_id'];
             $monto_abono = (float)$body['monto'];
 
-            if ($monto_abono <= 0) {
-                error('El monto del abono debe ser mayor a cero', 400);
+            if ($monto_abono < 0) {
+                error('El monto del abono debe ser mayor o igual a cero', 400);
             }
 
             $result = $this->model->registrarAbono(

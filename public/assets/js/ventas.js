@@ -415,7 +415,7 @@ async function completarVenta() {
     return;
   }
 
-  if (montoPagado <= 0) {
+  if (montoPagado < 0) {
     Swal.fire({
       icon: 'warning',
       title: 'Monto pagado inválido',

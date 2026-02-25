@@ -257,8 +257,8 @@ class Ventas extends BaseModel
                 throw new Exception("La venta ya está completamente pagada");
             }
 
-            if ($monto_abono <= 0) {
-                throw new Exception("El monto del abono debe ser mayor a cero");
+            if ($monto_abono < 0) {
+                throw new Exception("El monto del abono debe ser mayor o igual a cero");
             }
 
             if ($monto_abono > $venta['saldo']) {
