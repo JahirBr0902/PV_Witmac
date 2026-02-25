@@ -60,17 +60,28 @@ public function registrarMovimiento($producto_id, $tipo, $cantidad, $motivo, $us
 }
 
 
-
-    public function getMovimientosPorProducto($producto_id) {
-        $stmt = $this->db->prepare("
+public function getMovimientosPorProducto($producto_id, $fechaInicio = null, $fechaFin = null) {
+        $query = "
             SELECT m.*, p.nombre as producto_nombre, u.nombre as usuario_nombre
             FROM {$this->table} m
             LEFT JOIN productos p ON m.producto_id = p.id
             LEFT JOIN usuarios u ON m.usuario_id = u.id
             WHERE m.producto_id = :producto_id
-            ORDER BY m.fecha_movimiento DESC
-        ");
-        $stmt->execute(['producto_id' => $producto_id]);
+        ";
+        
+        $params = ['producto_id' => $producto_id];
+
+        
+        if ($fechaInicio && $fechaFin) {
+            $query .= " AND DATE(m.fecha_movimiento) BETWEEN :fechaInicio AND :fechaFin";
+            $params['fechaInicio'] = $fechaInicio;
+            $params['fechaFin'] = $fechaFin;
+        }
+
+        $query .= " ORDER BY m.fecha_movimiento DESC";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
