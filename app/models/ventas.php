@@ -61,20 +61,28 @@ class Ventas extends BaseModel
 
     public function getFullVentas($data)
     {
-        $stmt = $this->db->prepare("
+        $query = "
         SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre
         FROM {$this->table} v
         LEFT JOIN clientes c ON v.cliente_id = c.id
         LEFT JOIN usuarios u ON v.vendedor_id = u.id
         WHERE DATE(v.fecha_venta) BETWEEN :fechaInicio AND :fechaFin
-        ORDER BY v.fecha_venta DESC
-    ");
+    ";
 
-        $stmt->execute([
+        $params = [
             'fechaInicio' => $data->fechaInicio,
-            'fechaFin' => $data->fechaFin
-        ]);
+            'fechaFin'    => $data->fechaFin
+        ];
 
+        if (!empty($data->estado) && $data->estado !== 'Todos') {
+            $query .= " AND v.estado = :estado";
+            $params['estado'] = $data->estado;
+        }
+
+        $query .= " ORDER BY v.fecha_venta DESC";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
         $ventas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($ventas as &$venta) {
@@ -84,16 +92,13 @@ class Ventas extends BaseModel
             LEFT JOIN productos p ON dv.producto_id = p.id
             WHERE dv.venta_id = :venta_id
         ");
-
-            $stmtDetalles->execute([
-                'venta_id' => $venta['id']
-            ]);
-
+            $stmtDetalles->execute(['venta_id' => $venta['id']]);
             $venta['detalles'] = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
         }
 
         return $ventas;
     }
+
 
 
     public function cambiarEstado($id, $estado)
@@ -299,5 +304,35 @@ class Ventas extends BaseModel
             $this->db->rollBack();
             throw $e;
         }
+    }
+
+
+
+
+    public function getReporteVentas($fechaInicio, $fechaFin, $estado = 'Todos')
+    {
+        $query = "
+        SELECT v.*, c.nombre as cliente_nombre, u.nombre as usuario_nombre
+        FROM {$this->table} v
+        LEFT JOIN clientes c ON v.cliente_id = c.id
+        LEFT JOIN usuarios u ON v.usuario_id = u.id
+        WHERE DATE(v.fecha) BETWEEN :inicio AND :fin
+    ";
+
+        $params = [
+            'inicio' => $fechaInicio,
+            'fin' => $fechaFin
+        ];
+
+        if ($estado !== 'Todos') {
+            $query .= " AND v.estado = :estado";
+            $params['estado'] = $estado;
+        }
+
+        $query .= " ORDER BY v.fecha DESC";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 }

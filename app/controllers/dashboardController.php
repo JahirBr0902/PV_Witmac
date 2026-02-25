@@ -81,16 +81,12 @@ class dashboardController
     public function exportarVentas()
     {
         $body = getBody();
-
         $required = ['fechaInicio', 'fechaFin'];
         validate($body, $required);
-        
+
         try {
-
             $data = $this->model->exportarVentas((object)$body);
-
             $totalGeneral = array_sum(array_column($data, 'total'));
-
             response([
                 'success' => true,
                 'data' => $data,
@@ -100,6 +96,4 @@ class dashboardController
             error($e->getMessage(), 400);
         }
     }
-
-    
 }

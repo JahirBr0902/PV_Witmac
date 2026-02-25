@@ -196,154 +196,146 @@ async function toggleClienteEstado(id, nuevoEstado) {
 // ========== MÓDULO DE REPORTES ==========
 async function loadReportes() {
   const content = document.getElementById("pageContent");
-  content.innerHTML = `
-        <div class="fade-in">
-            <h2 class="mb-4"><i class="bi bi-graph-up"></i> Reportes y Análisis</h2>
-            
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="bi bi-calendar-range"></i> Rango de Fechas
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Fecha Inicio</label>
-                                    <input type="date" class="form-control" id="fechaInicio" value="${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Fecha Fin</label>
-                                    <input type="date" class="form-control" id="fechaFin" value="${new Date().toISOString().split("T")[0]}">
-                                </div>
-                            </div>
-                            <button class="btn btn-primary w-100" onclick="loadVentasReporte()">
+content.innerHTML = `
+    <div class="fade-in">
+        <h2 class="mb-4"><i class="bi bi-graph-up"></i> Reportes y Análisis</h2>
+
+        <!-- Filtros + Exportar en una sola card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-funnel"></i> Filtros
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha Inicio</label>
+                        <input type="date" class="form-control" id="fechaInicio" 
+                            value="${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha Fin</label>
+                        <input type="date" class="form-control" id="fechaFin" 
+                            value="${new Date().toISOString().split("T")[0]}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="filtroEstado">
+                            <option value="Todos">Todos</option>
+                            <option value="completada">Completada</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary flex-fill" onclick="loadVentasReporte()">
                                 <i class="bi bi-search"></i> Consultar
                             </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="bi bi-download"></i> Exportar Datos
-                        </div>
-                        <div class="card-body">
-                            <p class="text-muted">Exporta las ventas del período seleccionado</p>
-                            <button class="btn btn-success me-2" onclick="exportarExcel()">
-                                <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+                            <button class="btn btn-success flex-fill" onclick="exportarExcel()">
+                                <i class="bi bi-file-earmark-excel"></i> Excel
                             </button>
-                            <button class="btn btn-danger" onclick="exportarPDF()">
-                                <i class="bi bi-file-earmark-pdf"></i> Exportar a PDF
+                            <button class="btn btn-danger flex-fill" onclick="exportarPDF()">
+                                <i class="bi bi-file-earmark-pdf"></i> PDF
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="bi bi-receipt"></i> Historial de Ventas
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Folio</th>
-                                            <th>Cliente</th>
-                                            <th>Vendedor</th>
-                                            <th>Total</th>
-                                            <th>Método Pago</th>
-                                            <th>Fecha</th>
-                                            <th>Estado</th>
-                                            <th>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="ventasReporteBody">
-                                        <tr><td colspan="8" class="text-center">Selecciona un rango de fechas</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
-        
-        <!-- Modal Detalle Venta -->
-        <div class="modal fade" id="detalleVentaModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Detalle de Venta</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="detalleVentaContent">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Modal Abono -->
-<div class="modal fade" id="abonoModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-cash-stack"></i> Registrar Abono
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="abonoVentaId">
-                
-                <div class="alert alert-info">
-                    <strong>Folio: <span id="abonoFolio"></span></strong><br>
-                    <strong>Saldo actual: $<span id="abonoSaldoActual"></span></strong>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Monto a abonar</label>
-                    <input type="number" 
-                           class="form-control form-control-lg" 
-                           id="abonoMonto" 
-                           min="0.01" 
-                           step="0.01" 
-                           placeholder="Ingrese el monto">
-                </div>
-                
-                <div class="mb-3" id="abonoNuevoSaldoContainer" style="display: none;">
-                    <label class="form-label">Nuevo saldo:</label>
-                    <h4 class="text-warning" id="abonoNuevoSaldo">$0.00</h4>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    Cancelar
-                </button>
-<button type="button"
-        class="btn btn-warning"
-        onclick="registrarAbono()">
-    <i class="bi bi-check-circle"></i> Registrar Abono
-</button>
 
+        <!-- Tabla -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-receipt"></i> Historial de Ventas
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Folio</th>
+                                <th>Cliente</th>
+                                <th>Vendedor</th>
+                                <th>Total</th>
+                                <th>Método Pago</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ventasReporteBody">
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="bi bi-search"></i> Selecciona un rango de fechas y consulta
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
-    `;
+
+    <!-- Modal Detalle Venta -->
+    <div class="modal fade" id="detalleVentaModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-receipt"></i> Detalle de Venta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detalleVentaContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Abono -->
+    <div class="modal fade" id="abonoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title"><i class="bi bi-cash-stack"></i> Registrar Abono</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="abonoVentaId">
+                    <div class="alert alert-info">
+                        <strong>Folio:</strong> <span id="abonoFolio"></span><br>
+                        <strong>Saldo actual:</strong> $<span id="abonoSaldoActual"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto a abonar</label>
+                        <input type="number" class="form-control form-control-lg" 
+                               id="abonoMonto" min="0.01" step="0.01" 
+                               placeholder="Ingrese el monto">
+                    </div>
+                    <div class="mb-3" id="abonoNuevoSaldoContainer" style="display: none;">
+                        <label class="form-label">Nuevo saldo:</label>
+                        <h4 class="text-warning" id="abonoNuevoSaldo">$0.00</h4>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" onclick="registrarAbono()">
+                        <i class="bi bi-check-circle"></i> Registrar Abono
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
 }
 
 async function loadVentasReporte() {
   const fechaInicio = document.getElementById("fechaInicio").value;
   const fechaFin = document.getElementById("fechaFin").value;
+  const estado = document.getElementById("filtroEstado").value;
 
   try {
     const response = await apiPost("dashboard/exportar-ventas", {
       fechaInicio,
       fechaFin,
+      estado,
     });
 
     const tbody = document.getElementById("ventasReporteBody");
@@ -353,7 +345,8 @@ async function loadVentasReporte() {
 
       response.data.forEach((venta) => {
         const estadoBadge =
-          venta.estado === "completada" ? "success" : "warning";
+          venta.estado === "completada" ? "success" :
+          venta.estado === "cancelada" ? "danger" : "warning";
         const tieneSaldo = venta.saldo > 0;
 
         html += `
@@ -373,15 +366,10 @@ async function loadVentasReporte() {
                 <button class="btn btn-info" onclick="verDetalleVenta(${venta.id})" title="Ver detalle">
                   <i class="bi bi-eye"></i>
                 </button>
-                ${
-                  tieneSaldo
-                    ? `
+                ${tieneSaldo ? `
                 <button class="btn btn-warning" onclick="mostrarModalAbono(${venta.id}, '${venta.folio}', ${venta.saldo})" title="Registrar abono">
                   <i class="bi bi-cash-stack"></i> Abonar
-                </button>
-                `
-                    : ""
-                }
+                </button>` : ""}
               </div>
             </td>
           </tr>
@@ -551,14 +539,16 @@ async function verDetalleVenta(ventaId) {
 async function exportarExcel() {
   const fechaInicio = document.getElementById("fechaInicio").value;
   const fechaFin = document.getElementById("fechaFin").value;
+  const estado = document.getElementById("filtroEstado").value;
 
   try {
     const response = await apiPost("ventas/full", {
       fechaInicio,
       fechaFin,
+      estado, 
     });
-    if (!response.success) return;
 
+    if (!response.success) return;
     let ventas = response.data;
     if (!Array.isArray(ventas)) ventas = [ventas];
 
@@ -739,11 +729,13 @@ async function exportarPDF() {
 
   const fechaInicio = document.getElementById("fechaInicio").value;
   const fechaFin = document.getElementById("fechaFin").value;
+  const estado = document.getElementById("filtroEstado").value;
 
   try {
     const response = await apiPost("ventas/full", {
       fechaInicio,
       fechaFin,
+      estado, 
     });
 
     if (!response.success) return;
@@ -769,10 +761,13 @@ async function exportarPDF() {
       align: "center",
     });
 
+    const estadoLabel = estado === "Todos" ? "Todos los estados" : `Estado: ${estado}`;
+    doc.text(estadoLabel, 105, 26, { align: "center" });
+
     doc.setTextColor(0, 0, 0);
 
-    let y = 35;
-    const margenInferior = 40; // Espacio reservado para totales y pie de página
+    let y = 38;
+    const margenInferior = 40; 
 
     ventas.forEach((venta, index) => {
       totalGeneral += parseFloat(venta.total);
@@ -1119,4 +1114,3 @@ async function toggleUsuarioEstado(id, nuevoEstado) {
     Swal.fire("Error", "No se pudo actualizar el estado", "error");
   }
 }
-

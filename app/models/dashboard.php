@@ -138,10 +138,10 @@ class Dashboard extends BaseModel
         return $vendedores;
     }
 
-    
+
     public function exportarVentas($data)
     {
-        $stmt = $this->db->prepare("
+        $query = "
         SELECT v.*, 
             COALESCE(c.nombre, 'Cliente General') AS cliente_nombre,
             u.nombre AS vendedor_nombre
@@ -149,14 +149,22 @@ class Dashboard extends BaseModel
         LEFT JOIN clientes c ON v.cliente_id = c.id
         LEFT JOIN usuarios u ON v.vendedor_id = u.id
         WHERE DATE(v.fecha_venta) BETWEEN :fechaInicio AND :fechaFin
-        ORDER BY v.fecha_venta DESC
-    ");
+    ";
 
-        $stmt->execute([
+        $params = [
             'fechaInicio' => $data->fechaInicio,
-            'fechaFin' => $data->fechaFin
-        ]);
+            'fechaFin'    => $data->fechaFin
+        ];
 
+        if (!empty($data->estado) && $data->estado !== 'Todos') {
+            $query .= " AND v.estado = :estado";
+            $params['estado'] = $data->estado;
+        }
+
+        $query .= " ORDER BY v.fecha_venta DESC";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
