@@ -57,6 +57,11 @@ checkAuth();
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="creditos">
+                            <i class="bi bi-cash-stack"></i> Cuentas por Cobrar
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#" data-page="reportes">
                             <i class="bi bi-graph-up"></i> Reportes
                         </a>
@@ -114,6 +119,7 @@ checkAuth();
     <script src="assets/js/usuarios.js"></script>
     <script src="assets/js/inventarios.js"></script>
     <script src="assets/js/reportes.js"></script>
+    <script src="assets/js/creditos.js"></script>
     <script src="assets/js/main.js"></script>
 </body>
 </html>

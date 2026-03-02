@@ -8,9 +8,15 @@ class Dashboard extends BaseModel {
         
         // Estadísticas principales
         $stats = [
-            'ventasHoy' => $this->db->query("SELECT COALESCE(SUM(total), 0) FROM ventas WHERE DATE(fecha_venta) = '$hoy' AND estado = 'completada'")->fetchColumn(),
-            'totalProductos' => $this->db->query("SELECT COUNT(*) FROM productos WHERE activo = true")->fetchColumn(),
-            'totalClientes' => $this->db->query("SELECT COUNT(*) FROM clientes WHERE activo = true")->fetchColumn(),
+            'ventasEfectivoHoy' => $this->db->query("SELECT (
+                COALESCE((SELECT SUM(monto_pagado) FROM ventas WHERE DATE(fecha_venta) = '$hoy' AND metodo_pago = 'efectivo'), 0) + 
+                COALESCE((SELECT SUM(monto) FROM abonos WHERE DATE(fecha) = '$hoy' AND metodo_pago = 'efectivo'), 0)
+            )")->fetchColumn(),
+            'ventasTransferHoy' => $this->db->query("SELECT (
+                COALESCE((SELECT SUM(monto_pagado) FROM ventas WHERE DATE(fecha_venta) = '$hoy' AND metodo_pago = 'transferencia'), 0) + 
+                COALESCE((SELECT SUM(monto) FROM abonos WHERE DATE(fecha) = '$hoy' AND metodo_pago = 'transferencia'), 0)
+            )")->fetchColumn(),
+            'totalPendiente' => $this->db->query("SELECT COALESCE(SUM(saldo), 0) FROM ventas WHERE estado = 'pendiente'")->fetchColumn(),
             'stockBajo' => $this->db->query("SELECT COUNT(*) FROM productos WHERE stock <= stock_minimo AND activo = true")->fetchColumn()
         ];
 

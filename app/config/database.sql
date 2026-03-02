@@ -80,6 +80,33 @@ CREATE TABLE cajas (
 -- Vincular ventas con cajas
 ALTER TABLE ventas ADD CONSTRAINT fk_venta_caja FOREIGN KEY (caja_id) REFERENCES cajas(id);
 
+-- Tabla de movimientos de caja (Entradas y Salidas extras)
+CREATE TABLE movimientos_caja (
+    id SERIAL PRIMARY KEY,
+    caja_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    tipo VARCHAR(10) CHECK (tipo IN ('entrada', 'salida')) NOT NULL,
+    monto DECIMAL(10,2) NOT NULL,
+    motivo VARCHAR(255) NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (caja_id) REFERENCES cajas(id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+-- Tabla de abonos (Pagos a ventas pendientes)
+CREATE TABLE abonos (
+    id SERIAL PRIMARY KEY,
+    venta_id INT NOT NULL,
+    caja_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    monto DECIMAL(10,2) NOT NULL,
+    metodo_pago VARCHAR(20) CHECK (metodo_pago IN ('efectivo', 'tarjeta', 'transferencia')) DEFAULT 'efectivo',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (venta_id) REFERENCES ventas(id),
+    FOREIGN KEY (caja_id) REFERENCES cajas(id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
 -- Tabla de detalle de ventas
 CREATE TABLE detalle_ventas (
     id SERIAL PRIMARY KEY,

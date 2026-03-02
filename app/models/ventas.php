@@ -4,7 +4,7 @@ require_once __DIR__ . '/inventario.php';
 
 class Ventas extends BaseModel {
     protected $table = 'ventas';
-    protected $fields = ['folio', 'cliente_id', 'vendedor_id', 'subtotal', 'descuento', 'total', 'monto_pagado', 'saldo', 'metodo_pago', 'estado'];
+    protected $fields = ['folio', 'cliente_id', 'vendedor_id', 'subtotal', 'descuento', 'total', 'monto_pagado', 'saldo', 'metodo_pago', 'estado', 'caja_id'];
 
     /**
      * Obtiene una venta con sus detalles, cliente y vendedor
@@ -139,15 +139,35 @@ class Ventas extends BaseModel {
         }
     }
 
-    public function registrarAbono($venta_id, $monto) {
+    public function registrarAbono($venta_id, $monto, $metodo_pago = 'efectivo') {
+        require_once __DIR__ . '/caja.php';
+        $cajaModel = new Caja();
+        $caja = $cajaModel->getCajaAbierta();
+
+        if (!$caja) {
+            throw new Exception("No hay una caja abierta para registrar el abono.");
+        }
+
         $this->db->beginTransaction();
         try {
             $v = $this->getById($venta_id);
             if (!$v || $v['estado'] === 'cancelada') throw new Exception("Venta no válida");
 
-            $nuevoPagado = $v['monto_pagado'] + $monto;
-            $nuevoSaldo = max(0, $v['total'] - $nuevoPagado);
-            
+            $nuevoPagado = (float)$v['monto_pagado'] + (float)$monto;
+            $nuevoSaldo = max(0, (float)$v['total'] - $nuevoPagado);
+
+            // 1. Registrar el abono en la tabla abonos
+            require_once __DIR__ . '/abonos.php';
+            $abonoModel = new Abonos();
+            $abonoModel->create([
+                'venta_id' => $venta_id,
+                'caja_id' => $caja['id'],
+                'usuario_id' => $_SESSION['usuario_id'],
+                'monto' => $monto,
+                'metodo_pago' => $metodo_pago
+            ]);
+
+            // 2. Actualizar el saldo de la venta
             $this->update($venta_id, [
                 'monto_pagado' => $nuevoPagado,
                 'saldo' => $nuevoSaldo,
@@ -160,5 +180,4 @@ class Ventas extends BaseModel {
             $this->db->rollBack();
             throw $e;
         }
-    }
-}
+    }}

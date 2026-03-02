@@ -8,6 +8,7 @@ require_once __DIR__ . '/../controllers/clientesController.php';
 require_once __DIR__ . '/../controllers/usuariosController.php';
 require_once __DIR__ . '/../controllers/dashboardController.php';
 require_once __DIR__ . '/../controllers/cajaController.php';
+require_once __DIR__ . '/../controllers/movimientosCajaController.php';
 require_once __DIR__ . '/../helpers/session.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -25,6 +26,15 @@ try {
     }
 
     switch ($resource) {
+        case 'movimientos':
+            $ctrl = new movimientosCajaController();
+            switch ($action) {
+                case 'registrar': $ctrl->registrar(); break;
+                case 'listar': $ctrl->listar(); break;
+                default: error('Acción no encontrada'); break;
+            }
+            break;
+
         case 'caja':
             $ctrl = new cajaController();
             switch ($action) {
@@ -32,6 +42,7 @@ try {
                 case 'abrir': $ctrl->abrir(); break;
                 case 'cerrar': $ctrl->cerrar(); break;
                 case 'historial': $ctrl->historial(); break;
+                case 'detalle': $ctrl->detalle(); break;
                 default: error('Acción no encontrada'); break;
             }
             break;

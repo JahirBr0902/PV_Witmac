@@ -49,4 +49,13 @@ class cajaController {
             response(['success' => true, 'data' => $data]);
         } catch (Exception $e) { error($e->getMessage()); }
     }
+
+    public function detalle() {
+        $body = getBody();
+        validate($body, ['id']);
+        try {
+            $data = $this->model->getDetalleSesion($body['id']);
+            response(['success' => true, 'data' => $data]);
+        } catch (Exception $e) { error($e->getMessage()); }
+    }
 }

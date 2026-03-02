@@ -9,10 +9,10 @@ async function loadDashboard() {
                     <div class="card stats-card primary">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-muted mb-1">Ventas Hoy</h6>
+                                <h6 class="text-muted mb-1">Efectivo Hoy</h6>
                                 <h3 class="mb-0" id="ventasHoy">$0.00</h3>
                             </div>
-                            <i class="bi bi-cash-stack stats-icon"></i>
+                            <i class="bi bi-cash stats-icon"></i>
                         </div>
                     </div>
                 </div>
@@ -20,10 +20,10 @@ async function loadDashboard() {
                     <div class="card stats-card success">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-muted mb-1">Total Productos</h6>
-                                <h3 class="mb-0" id="totalProductos">0</h3>
+                                <h6 class="text-muted mb-1">Transferencia Hoy</h6>
+                                <h3 class="mb-0" id="ventasTransfer">$0.00</h3>
                             </div>
-                            <i class="bi bi-box-seam stats-icon"></i>
+                            <i class="bi bi-bank stats-icon"></i>
                         </div>
                     </div>
                 </div>
@@ -31,8 +31,8 @@ async function loadDashboard() {
                     <div class="card stats-card warning">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-muted mb-1">Cuentas Pendientes</h6>
-                                <h3 class="mb-0" id="totalClientes">0</h3>
+                                <h6 class="text-muted mb-1">Cuentas por Cobrar</h6>
+                                <h3 class="mb-0" id="totalPendiente">$0.00</h3>
                             </div>
                             <i class="bi bi-people stats-icon"></i>
                         </div>
@@ -63,12 +63,12 @@ async function loadDashboard() {
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white py-3">
                             <i class="bi bi-clock-history"></i> Últimas Ventas
                         </div>
-                        <div class="card-body" id="ultimasVentas">
-                            <p class="text-center text-muted">Cargando...</p>
+                        <div class="card-body p-0" id="ultimasVentas">
+                            <p class="text-center text-muted p-4">Cargando...</p>
                         </div>
                     </div>
                 </div>
@@ -84,17 +84,13 @@ async function loadDashboardData() {
     const data = await apiPost("dashboard/resumen");
 
     // Actualizar estadísticas
-    document.getElementById("ventasHoy").textContent =
-      "$" + parseFloat(data.estadisticas.ventasHoy || 0).toFixed(2);
+    document.getElementById("ventasHoy").textContent = formatCurrency(data.estadisticas.ventasEfectivoHoy || 0);
 
-    document.getElementById("totalProductos").textContent =
-      data.estadisticas.totalProductos || 0;
+    document.getElementById("ventasTransfer").textContent = formatCurrency(data.estadisticas.ventasTransferHoy || 0);
 
-    document.getElementById("totalClientes").textContent =
-      data.estadisticas.totalClientes || 0;
+    document.getElementById("totalPendiente").textContent = formatCurrency(data.estadisticas.totalPendiente || 0);
 
-    document.getElementById("stockBajo").textContent =
-      data.estadisticas.stockBajo || 0;
+    document.getElementById("stockBajo").textContent = data.estadisticas.stockBajo || 0;
 
     // Gráfica
     const ctx = document.getElementById("ventasChart").getContext("2d");

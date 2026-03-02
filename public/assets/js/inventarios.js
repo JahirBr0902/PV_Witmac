@@ -10,7 +10,7 @@ async function loadInventario() {
     <div class="fade-in">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-clipboard-data"></i> Inventario</h2>
-            <button class="btn btn-primary" onclick="showMovimientoModal()"><i class="bi bi-plus-circle"></i> Registrar Movimiento</button>
+            <button class="btn btn-primary" onclick="showMovimientoInventarioModal()"><i class="bi bi-plus-circle"></i> Registrar Movimiento</button>
         </div>
         
         <div class="card mb-3"><div class="card-body">
@@ -118,7 +118,7 @@ function renderTablaInventario() {
   ]);
 }
 
-async function showMovimientoModal() {
+async function showMovimientoInventarioModal() {
   document.getElementById("movimientoForm").reset();
   document.getElementById("movProductoId").value = "";
   document.getElementById("selectedProductInfo").innerHTML = "";

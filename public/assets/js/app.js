@@ -93,5 +93,7 @@ function showLoading() {
 }
 
 function hideLoading() {
-  Swal.close();
+  if (Swal.isVisible() && Swal.isLoading()) {
+    Swal.close();
+  }
 }

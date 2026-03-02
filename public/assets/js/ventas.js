@@ -434,13 +434,7 @@ async function completarVenta() {
   };
 
   try {
-    showLoading();
-
     const response = await apiPost("ventas/nuevo", venta);
-
-    if (!response.success) {
-      throw new Error(response.message || "Error al procesar la venta");
-    }
 
     await Swal.fire({
       icon: 'success',
@@ -464,18 +458,7 @@ async function completarVenta() {
     document.getElementById('btnCompletarVenta').disabled = true;
 
   } catch (error) {
-
+    // El error ya lo manejó apiPost, aquí solo podrías limpiar estados específicos si fuera necesario.
     console.error("Error completando venta:", error);
-
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: error.message || 'No se pudo completar la venta'
-    });
-
-  } finally {
-
-    hideLoading();
-
   }
 }

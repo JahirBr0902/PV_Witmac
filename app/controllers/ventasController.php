@@ -38,9 +38,9 @@ class ventasController {
 
     public function abonar() {
         $body = getBody();
-        validate($body, ['venta_id', 'monto']);
+        validate($body, ['venta_id', 'monto', 'metodo_pago']);
         try {
-            $this->model->registrarAbono($body['venta_id'], $body['monto']);
+            $this->model->registrarAbono($body['venta_id'], $body['monto'], $body['metodo_pago']);
             response(['success' => true, 'message' => 'Abono registrado']);
         } catch (Exception $e) { error($e->getMessage()); }
     }

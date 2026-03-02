@@ -73,6 +73,9 @@ function loadPage(page) {
     case "clientes":
       loadClientes();
       break;
+    case "creditos":
+      loadCreditos();
+      break;
     case "reportes":
       loadReportes();
       break;

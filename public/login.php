@@ -79,7 +79,7 @@
             </form>
             <div class="mt-4 text-center">
                 <small class="text-muted">
-                    Usuario: admin@pos.com | Contraseña: admin123
+                    Bienvenido al sistema de punto de venta. Por favor, ingresa tus credenciales para continuar.
                 </small>
             </div>
         </div>

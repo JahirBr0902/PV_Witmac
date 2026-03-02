@@ -47,16 +47,6 @@ async function loadReportes() {
     <div class="modal fade" id="detalleVentaModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
         <div class="modal-header"><h5><i class="bi bi-receipt"></i> Detalle de Venta</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body" id="detalleVentaContent"></div>
-    </div></div></div>
-
-    <div class="modal fade" id="abonoModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header bg-warning text-white"><h5>Registrar Abono</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <input type="hidden" id="abonoVentaId">
-            <div class="alert alert-info"><strong>Folio:</strong> <span id="abonoFolio"></span><br><strong>Saldo:</strong> <span id="abonoSaldoActual"></span></div>
-            <div class="mb-3"><label class="form-label">Monto a abonar</label><input type="number" class="form-control" id="abonoMonto" step="0.01"></div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn btn-warning" onclick="registrarAbono()">Registrar Abono</button></div>
     </div></div></div>`;
 
     await loadVentasReporte();
@@ -76,11 +66,10 @@ async function loadVentasReporte() {
     { field: "vendedor_nombre" },
     { render: (v) => `<div>${formatCurrency(v.total)}</div>${v.saldo > 0 ? `<small class="text-warning">Saldo: ${formatCurrency(v.saldo)}</small>` : ""}` },
     { render: (v) => `<span class="badge bg-info">${v.metodo_pago}</span>` },
-    { render: (v) => formatDate(v.fecha_venta) },
+    { render: (v) => formatDateTime(v.fecha_venta) },
     { render: (v) => `<span class="badge bg-${v.estado === 'completada' ? 'success' : (v.estado === 'cancelada' ? 'danger' : 'warning')}">${v.estado}</span>` },
     { render: (v) => `
-        <button class="btn btn-sm btn-info" onclick="verDetalleVenta(${v.id})"><i class="bi bi-eye"></i></button>
-        ${v.saldo > 0 ? `<button class="btn btn-sm btn-warning" onclick="mostrarModalAbono(${v.id}, '${v.folio}', ${v.saldo})"><i class="bi bi-cash-stack"></i></button>` : ""}
+        <button class="btn btn-sm btn-info" onclick="verDetalleVenta(${v.id})"><i class="bi bi-eye"></i> Ver</button>
     `}
   ]);
 }
@@ -91,7 +80,7 @@ async function verDetalleVenta(ventaId) {
   let html = `
     <div class="row mb-3">
       <div class="col-6">
-        <p><strong>Folio:</strong> ${v.folio}<br><strong>Cliente:</strong> ${v.cliente_nombre}<br><strong>Fecha:</strong> ${formatDate(v.fecha_venta)}</p>
+        <p><strong>Folio:</strong> ${v.folio}<br><strong>Cliente:</strong> ${v.cliente_nombre}<br><strong>Fecha:</strong> ${formatDateTime(v.fecha_venta)}</p>
       </div>
       <div class="col-6 text-end">
         <p><strong>Vendedor:</strong> ${v.vendedor_nombre}<br><strong>Método:</strong> ${v.metodo_pago}<br><strong>Estado:</strong> ${v.estado}</p>
@@ -110,27 +99,6 @@ async function verDetalleVenta(ventaId) {
 
   document.getElementById("detalleVentaContent").innerHTML = html;
   new bootstrap.Modal(document.getElementById("detalleVentaModal")).show();
-}
-
-function mostrarModalAbono(id, folio, saldo) {
-  document.getElementById("abonoVentaId").value = id;
-  document.getElementById("abonoFolio").textContent = folio;
-  document.getElementById("abonoSaldoActual").textContent = formatCurrency(saldo);
-  document.getElementById("abonoMonto").value = "";
-  new bootstrap.Modal(document.getElementById("abonoModal")).show();
-}
-
-async function registrarAbono() {
-  const data = {
-    venta_id: document.getElementById("abonoVentaId").value,
-    monto: document.getElementById("abonoMonto").value
-  };
-
-  if (!data.monto || data.monto <= 0) return notify("Error", "Monto inválido", "error");
-
-  await apiPost("ventas/abonar", data, { successMsg: "Abono registrado" });
-  bootstrap.Modal.getInstance(document.getElementById("abonoModal")).hide();
-  loadVentasReporte();
 }
 
 // Lógica de Exportación
@@ -204,14 +172,13 @@ async function exportarPDF() {
 
   const tableBody = [];
   res.data.forEach(v => {
-    tableBody.push([v.folio, v.cliente_nombre, formatCurrency(v.total), formatDate(v.fecha_venta), v.estado]);
-    if (conDetalles && v.detalles) {
-        v.detalles.forEach(d => {
-            tableBody.push(["", { content: `↳ ${d.producto_nombre} (x${d.cantidad})`, styles: { fontStyle: 'italic', textColor: [100, 100, 100] } }, "", formatCurrency(d.subtotal), ""]);
-        });
-    }
+  tableBody.push([v.folio, v.cliente_nombre, formatCurrency(v.total), formatDateTime(v.fecha_venta), v.estado]);
+  if (conDetalles && v.detalles) {
+      v.detalles.forEach(d => {
+          tableBody.push(["", { content: `> ${d.producto_nombre} (x${d.cantidad})`, styles: { fontStyle: 'italic', textColor: [80, 80, 80] } }, "", formatCurrency(d.subtotal), ""]);
+      });
+  }
   });
-
   doc.autoTable({
     startY: 30,
     head: [['Folio', 'Cliente / Productos', 'Total', 'Fecha', 'Estado']],
