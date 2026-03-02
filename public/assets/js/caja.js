@@ -122,9 +122,10 @@ async function loadCortes() {
             
             <div class="card mb-3"><div class="card-body">
                 <div class="row g-2 align-items-end">
-                    <div class="col-md-4"><label class="form-label">Desde</label><input type="date" class="form-control" id="cajaFechaInicio" value="${hace30Dias}"></div>
-                    <div class="col-md-4"><label class="form-label">Hasta</label><input type="date" class="form-control" id="cajaFechaFin" value="${hoy}"></div>
-                    <div class="col-md-4"><button class="btn btn-primary w-100" onclick="renderHistorialCortes()"><i class="bi bi-search"></i> Consultar</button></div>
+                    <div class="col-md-3"><label class="form-label">Desde</label><input type="date" class="form-control" id="cajaFechaInicio" value="${hace30Dias}"></div>
+                    <div class="col-md-3"><label class="form-label">Hasta</label><input type="date" class="form-control" id="cajaFechaFin" value="${hoy}"></div>
+                    <div class="col-md-3"><button class="btn btn-primary w-100" onclick="renderHistorialCortes()"><i class="bi bi-search"></i> Consultar</button></div>
+                    <div class="col-md-3"><button class="btn btn-danger w-100" onclick="exportarCortesPDF()"><i class="bi bi-file-earmark-pdf"></i> Exportar PDF</button></div>
                 </div>
             </div></div>
 
@@ -178,4 +179,42 @@ async function renderHistorialCortes() {
             return `<strong class="${color}">${formatCurrency(diff)}</strong>`;
         }}
     ]);
+}
+
+async function exportarCortesPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape');
+    
+    const fechaInicio = document.getElementById('cajaFechaInicio').value;
+    const fechaFin = document.getElementById('cajaFechaFin').value;
+
+    const res = await apiPost('caja/historial', { fechaInicio, fechaFin });
+    if (!res.success) return;
+
+    doc.setFontSize(16);
+    doc.text("Historial de Cortes de Caja", 148, 15, { align: "center" });
+    doc.setFontSize(10);
+    doc.text(`Periodo: ${fechaInicio} al ${fechaFin}`, 148, 22, { align: "center" });
+
+    const body = res.data.map(c => [
+        formatDate(c.fecha_apertura),
+        c.fecha_cierre ? formatDate(c.fecha_cierre) : 'ABIERTA',
+        c.usuario_apertura,
+        formatCurrency(c.monto_inicial),
+        formatCurrency(c.ventas_efectivo),
+        formatCurrency(c.monto_final_esperado),
+        c.estado === 'cerrada' ? formatCurrency(c.monto_final_real) : '-',
+        c.estado === 'cerrada' ? formatCurrency(c.diferencia) : '-'
+    ]);
+
+    doc.autoTable({
+        startY: 30,
+        head: [['Apertura', 'Cierre', 'Vendedor', 'M. Inicial', 'Ventas (Efe)', 'Esperado', 'Real', 'Diferencia']],
+        body: body,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] },
+        styles: { fontSize: 8 }
+    });
+
+    doc.save(`Cortes_Caja_${fechaInicio}.pdf`);
 }
