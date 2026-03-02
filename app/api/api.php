@@ -1,5 +1,7 @@
 <?php
 header('Content-Type: application/json');
+ini_set('display_errors', 0); // Evitar que errores PHP salgan como HTML
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/../controllers/productosController.php';
 require_once __DIR__ . '/../controllers/ventasController.php';

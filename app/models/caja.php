@@ -80,12 +80,13 @@ class Caja extends BaseModel {
         $resumen = $this->getResumenActual($cajaId);
         $ventasEfectivo = (float)$resumen['efectivo'];
         $ventasTransferencia = (float)$resumen['transferencia'];
-        $abonos = (float)$resumen['abonos'];
+        $abonosEfe = (float)$resumen['abonos_efectivo'];
+        $abonosTra = (float)$resumen['abonos_transfer'];
         $entradas = (float)$resumen['entradas'];
         $salidas = (float)$resumen['salidas'];
         
         // El monto esperado incluye: inicial + ventas efe + abonos efe + entradas efe - salidas efe
-        $montoEsperado = (float)$caja['monto_inicial'] + $ventasEfectivo + $abonos + $entradas - $salidas;
+        $montoEsperado = (float)$caja['monto_inicial'] + $ventasEfectivo + $abonosEfe + $entradas - $salidas;
         $diferencia = $montoReal - $montoEsperado;
 
         return $this->update($cajaId, [
@@ -94,8 +95,8 @@ class Caja extends BaseModel {
             'monto_final_esperado' => $montoEsperado,
             'monto_final_real' => $montoReal,
             'diferencia' => $diferencia,
-            'ventas_efectivo' => $ventasEfectivo + $abonos, // Sumamos abonos a la columna de efectivo para el reporte simple
-            'ventas_transferencia' => $ventasTransferencia,
+            'ventas_efectivo' => $ventasEfectivo + $abonosEfe, 
+            'ventas_transferencia' => $ventasTransferencia + $abonosTra,
             'estado' => 'cerrada'
         ]);
     }
