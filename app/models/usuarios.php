@@ -3,83 +3,68 @@ require_once __DIR__ . '/../core/base.php';
 
 class Usuarios extends BaseModel
 {
-
     protected $table = 'usuarios';
+    protected $fields = ['nombre', 'email', 'password', 'rol', 'activo'];
 
-    protected $fields = [
-        'nombre',
-        'email',
-        'password',
-        'rol',
-        'activo'
-    ];
-
-    public function crearUsuario($nombre, $email, $password, $rol = 'vendedor')
+    /**
+     * Crea un usuario con hashing seguro de contraseña
+     */
+    public function crearUsuario($data)
     {
-        if (!in_array($rol, ['admin', 'vendedor'])) {
-            throw new Exception('Rol inválido: admin o vendedor');
+        // Validar si el email ya existe
+        if ($this->where(['email' => $data['email']])) {
+            throw new Exception('El correo electrónico ya está registrado.');
         }
 
-        $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE email = :email");
-        $stmt->execute(['email' => $email]);
-
-        if ($stmt->fetch()) {
-            throw new Exception('Email ya existe');
+        // Hash de la contraseña (BCRYPT por defecto)
+        if (isset($data['password'])) {
+            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
         }
-
-        $data = [
-            'nombre' => $nombre,
-            'email' => $email,
-            'password' => md5($password),
-            'rol' => $rol,
-            'activo' => true
-        ];
 
         return $this->create($data);
     }
 
+    /**
+     * Autenticación segura usando password_verify
+     */
     public function autenticar($email, $password)
     {
-        $stmt = $this->db->prepare("
-        SELECT * FROM {$this->table}
-        WHERE email = :email AND password = :password AND activo = true
-        LIMIT 1
-    ");
+        $usuario = $this->findOne(['email' => $email, 'activo' => 1]);
 
-        $stmt->execute([
-            'email' => $email,
-            'password' => md5($password)
-        ]);
+        if ($usuario && password_verify($password, $usuario['password'])) {
+            // No devolver la contraseña en el array de sesión/respuesta
+            unset($usuario['password']);
+            return $usuario;
+        }
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return false;
+    }
+
+    /**
+     * Actualizar usuario, manejando el cambio de contraseña opcional
+     */
+    public function actualizarUsuario($id, $data)
+    {
+        // Si viene contraseña, hashearla. Si no, quitarla del array para no borrarla
+        if (!empty($data['password'])) {
+            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        } else {
+            unset($data['password']);
+        }
+
+        return $this->update($id, $data);
     }
 
     public function obtenerVentas($usuario_id)
     {
-        $stmt = $this->db->prepare("
-            SELECT v.*, c.nombre as cliente_nombre
-            FROM ventas v
-            LEFT JOIN clientes c ON v.cliente_id = c.id
-            WHERE v.vendedor_id = :usuario_id
-            ORDER BY v.fecha_venta DESC
-        ");
-        $stmt->execute(['usuario_id' => $usuario_id]);
-        return $stmt->fetchAll();
-    }
-
-    public function obtenerPorRol($rol)
-    {
-        if (!in_array($rol, ['admin', 'vendedor'])) {
-            throw new Exception('Rol inválido');
-        }
-
-        $stmt = $this->db->prepare("
-            SELECT id, nombre, email, rol, activo, fecha_creacion
-            FROM {$this->table}
-            WHERE rol = :rol
-            ORDER BY nombre ASC
-        ");
-        $stmt->execute(['rol' => $rol]);
+        $sql = "SELECT v.*, c.nombre as cliente_nombre 
+                FROM ventas v 
+                LEFT JOIN clientes c ON v.cliente_id = c.id 
+                WHERE v.vendedor_id = ? 
+                ORDER BY v.fecha_venta DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$usuario_id]);
         return $stmt->fetchAll();
     }
 }

@@ -2,337 +2,163 @@
 require_once __DIR__ . '/../core/base.php';
 require_once __DIR__ . '/inventario.php';
 
-class Ventas extends BaseModel
-{
-
+class Ventas extends BaseModel {
     protected $table = 'ventas';
+    protected $fields = ['folio', 'cliente_id', 'vendedor_id', 'subtotal', 'descuento', 'total', 'monto_pagado', 'saldo', 'metodo_pago', 'estado'];
 
-    protected $fields = [
-        'folio',
-        'cliente_id',
-        'vendedor_id',
-        'subtotal',
-        'descuento',
-        'total',
-        'monto_pagado',
-        'saldo',
-        'metodo_pago',
-        'estado'
-    ];
-
-    public function getVentaConDetalle($id)
-    {
-        $stmt = $this->db->prepare("
-            SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre
-            FROM {$this->table} v
-            LEFT JOIN clientes c ON v.cliente_id = c.id
-            LEFT JOIN usuarios u ON v.vendedor_id = u.id
-            WHERE v.id = :id
-        ");
-        $stmt->execute(['id' => $id]);
+    /**
+     * Obtiene una venta con sus detalles, cliente y vendedor
+     */
+    public function getVentaConDetalle($id) {
+        $sql = "SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre 
+                FROM {$this->table} v 
+                LEFT JOIN clientes c ON v.cliente_id = c.id 
+                LEFT JOIN usuarios u ON v.vendedor_id = u.id 
+                WHERE v.id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
         $venta = $stmt->fetch();
 
         if ($venta) {
-            $stmt = $this->db->prepare("
-                SELECT dv.*, p.nombre as producto_nombre
-                FROM detalle_ventas dv
-                LEFT JOIN productos p ON dv.producto_id = p.id
-                WHERE dv.venta_id = :venta_id
-            ");
-            $stmt->execute(['venta_id' => $id]);
-            $venta['detalles'] = $stmt->fetchAll();
+            $sqlDetalle = "SELECT dv.*, p.nombre as producto_nombre 
+                           FROM detalle_ventas dv 
+                           LEFT JOIN productos p ON dv.producto_id = p.id 
+                           WHERE dv.venta_id = ?";
+            $stmtD = $this->db->prepare($sqlDetalle);
+            $stmtD->execute([$id]);
+            $venta['detalles'] = $stmtD->fetchAll();
         }
-
         return $venta;
     }
 
-    public function getAllConDetalles()
-    {
-        $stmt = $this->db->prepare("
-            SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre
-            FROM {$this->table} v
-            LEFT JOIN clientes c ON v.cliente_id = c.id
-            LEFT JOIN usuarios u ON v.vendedor_id = u.id
-            ORDER BY v.fecha_venta DESC
-        ");
-        $stmt->execute();
-        return $stmt->fetchAll();
-    }
+    /**
+     * Consulta flexible para reportes
+     */
+    public function getReporte($filtros) {
+        $sql = "SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre 
+                FROM {$this->table} v 
+                LEFT JOIN clientes c ON v.cliente_id = c.id 
+                LEFT JOIN usuarios u ON v.vendedor_id = u.id 
+                WHERE DATE(v.fecha_venta) BETWEEN ? AND ?";
+        
+        $params = [$filtros['fechaInicio'], $filtros['fechaFin']];
 
-    public function getFullVentas($data)
-    {
-        $query = "
-        SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre
-        FROM {$this->table} v
-        LEFT JOIN clientes c ON v.cliente_id = c.id
-        LEFT JOIN usuarios u ON v.vendedor_id = u.id
-        WHERE DATE(v.fecha_venta) BETWEEN :fechaInicio AND :fechaFin
-    ";
-
-        $params = [
-            'fechaInicio' => $data->fechaInicio,
-            'fechaFin'    => $data->fechaFin
-        ];
-
-        if (!empty($data->estado) && $data->estado !== 'Todos') {
-            $query .= " AND v.estado = :estado";
-            $params['estado'] = $data->estado;
+        if (!empty($filtros['estado']) && $filtros['estado'] !== 'Todos') {
+            $sql .= " AND v.estado = ?";
+            $params[] = $filtros['estado'];
         }
 
-        $query .= " ORDER BY v.fecha_venta DESC";
-
-        $stmt = $this->db->prepare($query);
+        $sql .= " ORDER BY v.fecha_venta DESC";
+        $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        $ventas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $ventas = $stmt->fetchAll();
 
-        foreach ($ventas as &$venta) {
-            $stmtDetalles = $this->db->prepare("
-            SELECT dv.*, p.nombre as producto_nombre
-            FROM detalle_ventas dv
-            LEFT JOIN productos p ON dv.producto_id = p.id
-            WHERE dv.venta_id = :venta_id
-        ");
-            $stmtDetalles->execute(['venta_id' => $venta['id']]);
-            $venta['detalles'] = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
+        // Si se pide con detalles (para exportar)
+        if (!empty($filtros['conDetalles'])) {
+            foreach ($ventas as &$v) {
+                $sqlD = "SELECT dv.*, p.nombre as producto_nombre FROM detalle_ventas dv LEFT JOIN productos p ON dv.producto_id = p.id WHERE dv.venta_id = ?";
+                $stmtD = $this->db->prepare($sqlD);
+                $stmtD->execute([$v['id']]);
+                $v['detalles'] = $stmtD->fetchAll();
+            }
         }
 
         return $ventas;
     }
 
-
-
-    public function cambiarEstado($id, $estado)
-    {
-        if (!in_array($estado, ['completada', 'cancelada', 'pendiente'])) {
-            throw new Exception('Estado no válido: completada, cancelada o pendiente');
+    /**
+     * Transacción completa de venta
+     */
+    public function crearVenta($data) {
+        // Verificar si hay caja abierta
+        require_once __DIR__ . '/caja.php';
+        $cajaModel = new Caja();
+        $caja = $cajaModel->getCajaAbierta();
+        if (!$caja) {
+            throw new Exception("No hay una caja abierta. Debe abrir caja antes de realizar ventas.");
         }
 
-        return $this->update($id, ['estado' => $estado]);
-    }
-
-
-    public function crearVentaCompleta($cliente_id, $vendedor_id, $productos, $descuento, $metodo_pago, $monto_pagado = 0)
-    {
+        $this->db->beginTransaction();
         try {
-
-            $this->db->beginTransaction();
-
             $subtotal = 0;
-            $productosDB = [];
+            $items = [];
 
-            foreach ($productos as $producto) {
+            foreach ($data['productos'] as $p) {
+                // Bloqueamos el producto para evitar ventas simultáneas sin stock
+                $stmt = $this->db->prepare("SELECT id, precio_venta, stock FROM productos WHERE id = ? FOR UPDATE");
+                $stmt->execute([$p['id']]);
+                $prod = $stmt->fetch();
 
-                $stmt = $this->db->prepare("
-                SELECT id, codigo, stock, precio_venta 
-                FROM productos 
-                WHERE codigo = :codigo AND activo = true
-                FOR UPDATE
-            ");
-
-                $stmt->execute(['codigo' => $producto['codigo']]);
-                $dbProducto = $stmt->fetch();
-
-                if (!$dbProducto) {
-                    throw new Exception("Producto no encontrado: " . $producto['codigo']);
+                if (!$prod || $prod['stock'] < $p['cantidad']) {
+                    throw new Exception("Stock insuficiente para el producto ID: " . $p['id']);
                 }
 
-                if ($dbProducto['stock'] < $producto['cantidad']) {
-                    throw new Exception("Stock insuficiente para: " . $producto['codigo']);
-                }
-
-                $cantidad = (int)$producto['cantidad'];
-                $subtotalProducto = $dbProducto['precio_venta'] * $cantidad;
-
-                $subtotal += $subtotalProducto;
-
-                // Guardamos info ya validada
-                $productosDB[] = [
-                    'id' => $dbProducto['id'],
-                    'codigo' => $dbProducto['codigo'],
-                    'precio' => $dbProducto['precio_venta'],
-                    'cantidad' => $cantidad,
-                    'subtotal' => $subtotalProducto
+                $subtotalItem = $prod['precio_venta'] * $p['cantidad'];
+                $subtotal += $subtotalItem;
+                $items[] = [
+                    'id' => $prod['id'],
+                    'cantidad' => $p['cantidad'],
+                    'precio' => $prod['precio_venta'],
+                    'subtotal' => $subtotalItem
                 ];
             }
 
-            if ($descuento > $subtotal) {
-                throw new Exception("El descuento no puede ser mayor al subtotal");
-            }
-
-            $total = $subtotal - $descuento;
-
-            // Validar monto pagado
-            if ($monto_pagado < 0) {
-                throw new Exception("El monto pagado no puede ser negativo");
-            }
-
-            // Calcular saldo
-            $saldo = $total - $monto_pagado;
-
-            // El saldo puede ser negativo (cambio) o positivo (deuda)
-            // Si es negativo, lo dejamos como 0 para el registro de venta
-            $saldo_registro = max(0, $saldo);
-
+            $total = $subtotal - ($data['descuento'] ?? 0);
+            $monto_pagado = $data['monto_pagado'] ?? 0;
+            $saldo = max(0, $total - $monto_pagado);
             $folio = 'V-' . date('Ymd') . '-' . str_pad(random_int(1, 9999), 4, '0', STR_PAD_LEFT);
 
             $venta_id = $this->create([
                 'folio' => $folio,
-                'cliente_id' => $cliente_id,
-                'vendedor_id' => $vendedor_id,
+                'cliente_id' => $data['cliente_id'] ?? 1,
+                'vendedor_id' => $_SESSION['usuario_id'],
                 'subtotal' => $subtotal,
-                'descuento' => $descuento,
+                'descuento' => $data['descuento'] ?? 0,
                 'total' => $total,
                 'monto_pagado' => $monto_pagado,
-                'saldo' => $saldo_registro,
-                'metodo_pago' => $metodo_pago,
-                'estado' => $saldo_registro > 0 ? 'pendiente' : 'completada'
+                'saldo' => $saldo,
+                'metodo_pago' => $data['metodo_pago'] ?? 'efectivo',
+                'estado' => $saldo > 0 ? 'pendiente' : 'completada',
+                'caja_id' => $caja['id']
             ]);
 
-            $inventario = new Inventario();
-
-            foreach ($productosDB as $producto) {
-
-                $stmt = $this->db->prepare("
-                INSERT INTO detalle_ventas 
-                (venta_id, producto_id, cantidad, precio_unitario, subtotal)
-                VALUES (:venta_id, :producto_id, :cantidad, :precio_unitario, :subtotal)
-            ");
-
-                $stmt->execute([
-                    'venta_id' => $venta_id,
-                    'producto_id' => $producto['id'],
-                    'cantidad' => $producto['cantidad'],
-                    'precio_unitario' => $producto['precio'],
-                    'subtotal' => $producto['subtotal']
-                ]);
-
-                $inventario->registrarMovimiento(
-                    $producto['id'],
-                    'salida',
-                    $producto['cantidad'],
-                    'Venta ' . $folio,
-                    $vendedor_id
-                );
+            $inv = new Inventario();
+            foreach ($items as $item) {
+                $stmt = $this->db->prepare("INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?,?,?,?,?)");
+                $stmt->execute([$venta_id, $item['id'], $item['cantidad'], $item['precio'], $item['subtotal']]);
+                
+                // Registrar movimiento de inventario
+                $inv->registrarMovimiento($item['id'], 'salida', $item['cantidad'], "Venta $folio");
             }
 
             $this->db->commit();
-
-            return [
-                'venta_id' => $venta_id,
-                'folio' => $folio,
-                'total' => $total,
-                'monto_pagado' => $monto_pagado,
-                'saldo' => $saldo_registro,
-                'cambio' => $saldo < 0 ? abs($saldo) : 0
-            ];
+            return ['id' => $venta_id, 'folio' => $folio, 'total' => $total, 'saldo' => $saldo];
         } catch (Exception $e) {
-
             $this->db->rollBack();
             throw $e;
         }
     }
 
-
-    public function registrarAbono($venta_id, $monto_abono)
-    {
+    public function registrarAbono($venta_id, $monto) {
+        $this->db->beginTransaction();
         try {
-            $this->db->beginTransaction();
+            $v = $this->getById($venta_id);
+            if (!$v || $v['estado'] === 'cancelada') throw new Exception("Venta no válida");
 
-            // 1. Obtener la venta actual con lock para evitar condiciones de carrera
-            $stmt = $this->db->prepare("
-            SELECT id, folio, total, monto_pagado, saldo, estado 
-            FROM ventas 
-            WHERE id = :id 
-            FOR UPDATE
-        ");
-            $stmt->execute(['id' => $venta_id]);
-            $venta = $stmt->fetch();
-
-            if (!$venta) {
-                throw new Exception("Venta no encontrada");
-            }
-
-            // 2. Validaciones
-            if ($venta['estado'] === 'completada') {
-                throw new Exception("La venta ya está completamente pagada");
-            }
-
-            if ($monto_abono < 0) {
-                throw new Exception("El monto del abono debe ser mayor o igual a cero");
-            }
-
-            if ($monto_abono > $venta['saldo']) {
-                throw new Exception("El abono no puede ser mayor al saldo pendiente ($" . number_format($venta['saldo'], 2) . ")");
-            }
-
-            // 3. Calcular nuevos valores
-            $nuevo_monto_pagado = $venta['monto_pagado'] + $monto_abono;
-            $nuevo_saldo = $venta['saldo'] - $monto_abono;
-            $nuevo_estado = ($nuevo_saldo == 0) ? 'completada' : 'pendiente';
-
-            // 4. Actualizar la venta (solo actualizamos los campos existentes)
-            $stmt = $this->db->prepare("
-            UPDATE ventas 
-            SET monto_pagado = :monto_pagado,
-                saldo = :saldo,
-                estado = :estado
-            WHERE id = :id
-        ");
-
-            $stmt->execute([
-                'monto_pagado' => $nuevo_monto_pagado,
-                'saldo' => $nuevo_saldo,
-                'estado' => $nuevo_estado,
-                'id' => $venta_id
+            $nuevoPagado = $v['monto_pagado'] + $monto;
+            $nuevoSaldo = max(0, $v['total'] - $nuevoPagado);
+            
+            $this->update($venta_id, [
+                'monto_pagado' => $nuevoPagado,
+                'saldo' => $nuevoSaldo,
+                'estado' => $nuevoSaldo <= 0 ? 'completada' : 'pendiente'
             ]);
 
             $this->db->commit();
-
-            return [
-                'success' => true,
-                'venta_id' => $venta_id,
-                'folio' => $venta['folio'],
-                'abono' => $monto_abono,
-                'nuevo_monto_pagado' => $nuevo_monto_pagado,
-                'nuevo_saldo' => $nuevo_saldo,
-                'nuevo_estado' => $nuevo_estado,
-                'mensaje' => $nuevo_estado === 'completada' ?
-                    '¡Venta liquidada completamente!' :
-                    'Abono registrado correctamente'
-            ];
+            return true;
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
         }
-    }
-
-
-
-
-    public function getReporteVentas($fechaInicio, $fechaFin, $estado = 'Todos')
-    {
-        $query = "
-        SELECT v.*, c.nombre as cliente_nombre, u.nombre as usuario_nombre
-        FROM {$this->table} v
-        LEFT JOIN clientes c ON v.cliente_id = c.id
-        LEFT JOIN usuarios u ON v.usuario_id = u.id
-        WHERE DATE(v.fecha) BETWEEN :inicio AND :fin
-    ";
-
-        $params = [
-            'inicio' => $fechaInicio,
-            'fin' => $fechaFin
-        ];
-
-        if ($estado !== 'Todos') {
-            $query .= " AND v.estado = :estado";
-            $params['estado'] = $estado;
-        }
-
-        $query .= " ORDER BY v.fecha DESC";
-
-        $stmt = $this->db->prepare($query);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
     }
 }

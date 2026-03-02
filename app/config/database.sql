@@ -56,6 +56,30 @@ CREATE TABLE ventas (
     FOREIGN KEY (vendedor_id) REFERENCES usuarios(id)
 );
 
+-- Añadir vínculo de caja a ventas (Corte de caja)
+ALTER TABLE ventas ADD COLUMN caja_id INT;
+
+-- Tabla de cajas (Control de aperturas y cortes)
+CREATE TABLE cajas (
+    id SERIAL PRIMARY KEY,
+    usuario_id_apertura INT NOT NULL,
+    usuario_id_cierre INT,
+    fecha_apertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_cierre TIMESTAMP,
+    monto_inicial DECIMAL(10,2) DEFAULT 0,
+    monto_final_esperado DECIMAL(10,2) DEFAULT 0,
+    monto_final_real DECIMAL(10,2) DEFAULT 0,
+    diferencia DECIMAL(10,2) DEFAULT 0,
+    ventas_efectivo DECIMAL(10,2) DEFAULT 0,
+    ventas_transferencia DECIMAL(10,2) DEFAULT 0,
+    estado VARCHAR(20) CHECK (estado IN ('abierta', 'cerrada')) DEFAULT 'abierta',
+    FOREIGN KEY (usuario_id_apertura) REFERENCES usuarios(id),
+    FOREIGN KEY (usuario_id_cierre) REFERENCES usuarios(id)
+);
+
+-- Vincular ventas con cajas
+ALTER TABLE ventas ADD CONSTRAINT fk_venta_caja FOREIGN KEY (caja_id) REFERENCES cajas(id);
+
 -- Tabla de detalle de ventas
 CREATE TABLE detalle_ventas (
     id SERIAL PRIMARY KEY,
@@ -81,9 +105,9 @@ CREATE TABLE movimientos_inventario (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
--- Insertar usuario admin por defecto (usando MD5 como en el original)
+-- Insertar usuario admin por defecto (admin123)
 INSERT INTO usuarios (nombre, email, password, rol) 
-VALUES ('Administrador', 'admin@pos.com', MD5('admin123'), 'admin');
+VALUES ('Administrador', 'admin@pos.com', '$2y$10$8.06Y7ZuxpxjSpxbgPvSkeWqh7VGuU6as6.FEZ.Z.iz66.Z6.Z.iz', 'admin');
 
 -- Insertar algunos clientes de ejemplo (ACTUALIZADO con campo activo)
 INSERT INTO clientes (nombre, telefono, email, activo) VALUES 

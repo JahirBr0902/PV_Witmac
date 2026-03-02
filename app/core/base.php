@@ -87,6 +87,32 @@ abstract class BaseModel
         return $stmt->execute(['id' => $id]);
     }
 
+    /**
+     * Busca registros basados en condiciones simples
+     */
+    public function where(array $conditions, string $operator = 'AND')
+    {
+        $parts = [];
+        $params = [];
+        foreach ($conditions as $key => $value) {
+            $parts[] = "$key = :$key";
+            $params[$key] = $value;
+        }
+        $where = implode(" $operator ", $parts);
+        $sql = "SELECT * FROM {$this->table} WHERE $where";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Busca un solo registro basado en condiciones
+     */
+    public function findOne(array $conditions)
+    {
+        $results = $this->where($conditions);
+        return $results ? $results[0] : null;
+    }
 
     public function setActivo($id, bool $activo)
     {

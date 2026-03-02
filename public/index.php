@@ -23,8 +23,11 @@ checkAuth();
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-3" id="cajaStatusIndicator">
+                        <!-- Se llena dinámicamente desde caja.js -->
+                    </li>
+                    <li class="nav-item dropdown">
                         <a class="nav-link active" href="#" data-page="dashboard">
                             <i class="bi bi-house"></i> Inicio
                         </a>
@@ -59,6 +62,11 @@ checkAuth();
                         </a>
                     </li>
                     <?php if ($_SESSION['rol'] === 'admin'): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="cortes">
+                            <i class="bi bi-safe2"></i> Cortes
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" data-page="usuarios">
                             <i class="bi bi-person-badge"></i> Usuarios
@@ -98,9 +106,14 @@ checkAuth();
 
 
     <script src="assets/js/app.js"></script>
-    <script src="assets/js/main.js"></script>
+    <script src="assets/js/caja.js"></script>
+    <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/ventas.js"></script>
-    <script src="assets/js/modules.js"></script>
+    <script src="assets/js/productos.js"></script>
+    <script src="assets/js/clientes.js"></script>
+    <script src="assets/js/usuarios.js"></script>
     <script src="assets/js/inventarios.js"></script>
+    <script src="assets/js/reportes.js"></script>
+    <script src="assets/js/main.js"></script>
 </body>
 </html>
