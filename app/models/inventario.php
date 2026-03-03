@@ -66,19 +66,24 @@ class Inventario extends BaseModel {
     }
 
     public function getReporte($fechaInicio, $fechaFin) {
-        $sql = "SELECT p.id, p.codigo, p.nombre, p.stock, p.stock_minimo,
+        $sql = "SELECT p.id, p.codigo, p.nombre, p.stock, p.stock_minimo, p.precio_compra, p.precio_venta,
                 (p.stock * p.precio_compra) as valor_stock_costo,
-                COALESCE(SUM(vd.cantidad), 0) as cantidad_vendida,
-                COALESCE(SUM(vd.subtotal - (vd.cantidad * p.precio_compra)), 0) as ganancia,
+                COALESCE(v_resumen.total_vendido, 0) as cantidad_vendida,
+                (COALESCE(v_resumen.total_vendido, 0) * (p.precio_venta - p.precio_compra)) as ganancia,
                 CASE 
                     WHEN p.stock <= 0 THEN 'Agotado'
                     WHEN p.stock <= p.stock_minimo THEN 'Bajo'
                     ELSE 'Normal'
                 END as estado
                 FROM productos p
-                LEFT JOIN detalle_ventas vd ON p.id = vd.producto_id
-                LEFT JOIN ventas v ON vd.venta_id = v.id AND v.fecha_venta BETWEEN ? AND ?
-                GROUP BY p.id
+                LEFT JOIN (
+                    SELECT vd.producto_id, 
+                           SUM(vd.cantidad) as total_vendido
+                    FROM detalle_ventas vd
+                    JOIN ventas v ON vd.venta_id = v.id
+                    WHERE v.fecha_venta BETWEEN ? AND ?
+                    GROUP BY vd.producto_id
+                ) v_resumen ON p.id = v_resumen.producto_id
                 ORDER BY estado DESC, p.nombre ASC";
         
         $stmt = $this->db->prepare($sql);

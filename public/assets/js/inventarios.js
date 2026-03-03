@@ -10,7 +10,10 @@ async function loadInventario() {
     <div class="fade-in">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-clipboard-data"></i> Inventario</h2>
-            <button class="btn btn-primary" onclick="showMovimientoInventarioModal()"><i class="bi bi-plus-circle"></i> Registrar Movimiento</button>
+            <div>
+                <span class="me-3 fs-5">Valor Total Tienda: <strong class="text-primary" id="totalValorTienda">$0.00</strong></span>
+                <button class="btn btn-primary" onclick="showMovimientoInventarioModal()"><i class="bi bi-plus-circle"></i> Registrar Movimiento</button>
+            </div>
         </div>
         
         <div class="card mb-3"><div class="card-body">
@@ -41,7 +44,7 @@ async function loadInventario() {
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                            <tr><th>Código</th><th>Producto</th><th>Stock</th><th>Valor</th><th>Vendidos</th><th>Ganancia</th><th>Estado</th><th>Acciones</th></tr>
+                            <tr><th>Código</th><th>Producto</th><th>Stock</th><th>Costo Total</th><th>Vendido</th><th>Ganancia</th><th>Estado</th><th>Acciones</th></tr>
                         </thead>
                         <tbody id="reporteInventarioBody"></tbody>
                     </table>
@@ -106,6 +109,12 @@ function getDatosFiltrados() {
 
 function renderTablaInventario() {
   const datosFiltrados = getDatosFiltrados();
+  
+  // Calcular valor total de la tienda basado en los datos cargados (no solo filtrados)
+  const totalTienda = datosInventarioActuales.reduce((acc, p) => acc + parseFloat(p.valor_stock_costo || 0), 0);
+  const elementTotal = document.getElementById("totalValorTienda");
+  if (elementTotal) elementTotal.textContent = formatCurrency(totalTienda);
+
   fillTable("reporteInventarioBody", datosFiltrados, [
     { field: "codigo" },
     { render: (p) => `<strong>${p.nombre}</strong>` },
@@ -186,7 +195,6 @@ function selectProductInv(id, nombre, stock) {
 // =========================
 
 async function exportarInvExcel() {
-  // CORRECCIÓN: confirmAction devuelve booleano, no objeto
   const conDetalles = await confirmAction("Exportar Excel", "¿Deseas incluir el historial de movimientos de cada producto?", "Sí, detallado");
   
   const fechaInicio = document.getElementById("invFechaInicio").value;
@@ -198,24 +206,36 @@ async function exportarInvExcel() {
   }
 
   const wb = XLSX.utils.book_new();
-  const rows = [["Código", "Producto", "Vendidos", "Stock Actual", "Ganancia", "Estado"]];
+  const rows = [["Código", "Producto", "Stock", "Costo Total", "Vendidos", "Ganancia", "Estado"]];
+
+  let granTotalCosto = 0;
+  let granTotalGanancia = 0;
 
   datos.forEach(p => {
-    rows.push([p.codigo, p.nombre, Number(p.cantidad_vendida), Number(p.stock), Number(p.ganancia), p.estado]);
+    const costoTotal = Number(p.valor_stock_costo || 0);
+    const ganancia = Number(p.ganancia || 0);
+    granTotalCosto += costoTotal;
+    granTotalGanancia += ganancia;
+
+    rows.push([p.codigo, p.nombre, Number(p.stock), costoTotal, Number(p.cantidad_vendida), ganancia, p.estado]);
+    
     if (conDetalles && p.movimientos && p.movimientos.length > 0) {
       p.movimientos.forEach(m => {
-        rows.push(["", "   ↳ " + formatDate(m.fecha_movimiento) + " | " + m.motivo, m.tipo === 'entrada' ? '+' + m.cantidad : '-' + m.cantidad, "", "", ""]);
+        rows.push(["", "   ↳ " + formatDate(m.fecha_movimiento) + " | " + m.motivo, m.tipo === 'entrada' ? '+' + m.cantidad : '-' + m.cantidad, "", "", "", ""]);
       });
     }
   });
 
+  // Fila de Totales
+  rows.push(["", "", "", "", "", "", ""]); // Espacio
+  rows.push(["", "TOTALES", "", granTotalCosto, "", granTotalGanancia, ""]);
+
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-  XLSX.writeFile(wb, `Inventario_${fechaInicio}_${conDetalles ? 'Detallado' : 'Resumen'}.xlsx`);
+  XLSX.writeFile(wb, `Inventario_${fechaInicio}.xlsx`);
 }
 
 async function exportarInvPDF() {
-  // CORRECCIÓN: confirmAction devuelve booleano, no objeto
   const conDetalles = await confirmAction("Exportar PDF", "¿Deseas incluir el historial de movimientos en el documento?", "Sí, detallado");
   
   const fechaInicio = document.getElementById("invFechaInicio").value;
@@ -227,27 +247,46 @@ async function exportarInvPDF() {
   }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.text("Reporte de Inventario", 105, 15, { align: "center" });
+  const doc = new jsPDF('l', 'mm', 'a4'); // Paisaje para más espacio
+  doc.text("Reporte de Inventario", 140, 15, { align: "center" });
   doc.setFontSize(10);
-  doc.text(`Periodo: ${fechaInicio} al ${fechaFin}`, 105, 22, { align: "center" });
+  doc.text(`Periodo: ${fechaInicio} al ${fechaFin}`, 140, 22, { align: "center" });
 
+  let granTotalCosto = 0;
   const body = [];
+  
   datos.forEach(p => {
-    body.push([p.codigo, p.nombre, p.cantidad_vendida, p.stock, p.estado]);
+    granTotalCosto += parseFloat(p.valor_stock_costo || 0);
+    body.push([
+        p.codigo, 
+        p.nombre, 
+        p.stock, 
+        formatCurrency(p.valor_stock_costo), 
+        p.cantidad_vendida, 
+        formatCurrency(p.ganancia), 
+        p.estado
+    ]);
+    
     if (conDetalles && p.movimientos && p.movimientos.length > 0) {
       p.movimientos.forEach(m => {
-        body.push(["", { content: `↳ ${formatDate(m.fecha_movimiento)}: ${m.motivo}`, styles: { fontStyle: 'italic', textColor: [100, 100, 100] } }, "", m.tipo === 'entrada' ? '+'+m.cantidad : '-'+m.cantidad, ""]);
+        body.push(["", { content: `↳ ${formatDate(m.fecha_movimiento)}: ${m.motivo}`, styles: { fontStyle: 'italic', textColor: [100, 100, 100] } }, m.tipo === 'entrada' ? '+'+m.cantidad : '-'+m.cantidad, "", "", "", ""]);
       });
     }
   });
 
   doc.autoTable({
     startY: 30,
-    head: [['Código', 'Producto / Movimientos', 'Vendidos', 'Stock', 'Estado']],
+    head: [['Código', 'Producto', 'Stock', 'Costo Total', 'Vendido', 'Ganancia', 'Estado']],
     body: body,
-    theme: conDetalles ? 'plain' : 'striped',
-    headStyles: { fillColor: [41, 128, 185] }
+    theme: 'striped',
+    headStyles: { fillColor: [41, 128, 185] },
+    didDrawPage: function(data) {
+        // Añadir el total al final de la última página
+        const finalY = data.cursor.y;
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(`VALOR TOTAL DE LA TIENDA (COSTO): ${formatCurrency(granTotalCosto)}`, 15, finalY + 10);
+    }
   });
 
   doc.save(`Inventario_${fechaInicio}.pdf`);

@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../models/productos.php';
+require_once __DIR__ . '/../models/inventario.php';
 
 class productosController {
     private $model;
+    private $inventarioModel;
 
     public function __construct() {
         $this->model = new Productos();
+        $this->inventarioModel = new Inventario();
     }
 
     public function listar() {
@@ -18,10 +21,33 @@ class productosController {
         $body = getBody();
         validate($body, ['codigo', 'nombre', 'precio_venta', 'stock']);
         try {
+            $stockInicial = $body['stock'] ?? 0;
+            $body['stock'] = 0; // Forzamos stock 0 en la creación inicial del producto
             $body['activo'] = 1;
+            
+            // Iniciar transacción
+            $db = Conexion::getConexion();
+            $db->beginTransaction();
+
             $id = $this->model->create($body);
-            response(['success' => true, 'id' => $id, 'message' => 'Producto creado'], 201);
-        } catch (Exception $e) { error($e->getMessage()); }
+
+            // Si el stock inicial solicitado era mayor a 0, registramos el movimiento
+            if ($stockInicial > 0) {
+                $this->inventarioModel->registrarMovimiento([
+                    'producto_id' => $id,
+                    'tipo' => 'entrada',
+                    'cantidad' => $stockInicial,
+                    'motivo' => 'Carga inicial de producto',
+                    'usuario_id' => $_SESSION['usuario_id'] ?? null
+                ]);
+            }
+
+            $db->commit();
+            response(['success' => true, 'id' => $id, 'message' => 'Producto creado con carga inicial'], 201);
+        } catch (Exception $e) { 
+            if (isset($db) && $db->inTransaction()) $db->rollBack();
+            error($e->getMessage()); 
+        }
     }
 
     public function editar() {
