@@ -146,7 +146,15 @@ async function cargarVentaParaEdicion(id) {
     try {
         const v = await apiPost("ventas/listar", { id });
         if (!v) return;
-        document.querySelector('h2').innerHTML = `<i class="bi bi-pencil-square"></i> Editando Venta: ${v.folio}`;
+        
+        document.querySelector('h2').innerHTML = `
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-pencil-square text-warning"></i> Editando Venta: ${v.folio}
+                <button class="btn btn-sm btn-danger shadow-sm" onclick="cancelarEdicionVenta()">
+                    <i class="bi bi-x-circle"></i> Cancelar Edición
+                </button>
+            </div>`;
+
         cart = v.detalles.map(d => ({
             id: d.producto_id,
             codigo: d.codigo || 'N/A',
@@ -162,7 +170,16 @@ async function cargarVentaParaEdicion(id) {
         document.getElementById('montoPagado').value = v.monto_pagado;
         updateCartDisplay();
         validarMontoPagado();
-    } catch (e) { console.error(e); sessionStorage.removeItem('editandoVentaId'); }
+    } catch (e) { 
+        console.error(e); 
+        sessionStorage.removeItem('editandoVentaId'); 
+        notify("Error", "No se pudo cargar la venta", "error");
+    }
+}
+
+function cancelarEdicionVenta() {
+    sessionStorage.removeItem('editandoVentaId');
+    loadVentas(); // Recarga el módulo completo para resetear la interfaz a "Nueva Venta"
 }
 
 async function searchProducts(query) {
