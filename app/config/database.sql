@@ -151,3 +151,18 @@ INSERT INTO productos (codigo, nombre, descripcion, precio_compra, precio_venta,
 ('PROD003', 'Agua Natural 1L', 'Agua purificada', 5.00, 8.00, 100),
 ('PROD004', 'Chocolate Abuelita', 'Tableta de chocolate', 15.00, 22.00, 25),
 ('PROD005', 'Pan Blanco', 'Paquete de pan de caja', 25.00, 35.00, 15);
+
+-- Tabla de configuración del negocio
+CREATE TABLE configuracion (
+    id SERIAL PRIMARY KEY,
+    nombre_negocio VARCHAR(100) NOT NULL,
+    rfc VARCHAR(20),
+    telefono VARCHAR(20),
+    direccion TEXT,
+    email VARCHAR(100),
+    mensaje_ticket TEXT
+);
+
+-- Insertar configuración inicial
+INSERT INTO configuracion (nombre_negocio, mensaje_ticket) 
+VALUES ('Witmac Punto de Venta', '¡Gracias por su compra!');

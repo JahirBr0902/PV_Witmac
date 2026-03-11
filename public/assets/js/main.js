@@ -6,9 +6,27 @@ let cart = [];
 document.addEventListener("DOMContentLoaded", function () {
   initNavigation();
   initLogout();
+  initBrand(); // Cargar nombre del negocio
   checkEstadoCaja();
   loadPage("dashboard");
 });
+
+// Cargar marca del negocio dinámicamente
+async function initBrand() {
+  try {
+    const res = await apiPost('configuracion/get', {}, { showLoader: false });
+    if (res.success && res.data) {
+      const nombre = res.data.nombre_negocio;
+      document.title = `${nombre} | Punto de Venta`;
+      const brandEl = document.getElementById('navbarBrand');
+      if (brandEl) {
+        brandEl.innerHTML = `<i class="bi bi-shop-window"></i> ${nombre}`;
+      }
+      // Guardar en window para acceso global (ej: tickets)
+      window.BUSINESS_CONFIG = res.data;
+    }
+  } catch (e) { console.error("Error cargando marca:", e); }
+}
 
 // Navegación
 function initNavigation() {
@@ -98,6 +116,9 @@ function loadPage(page) {
       break;
     case "cortes":
       loadCortes();
+      break;
+    case "configuracion":
+      loadConfiguracion();
       break;
   }
 }

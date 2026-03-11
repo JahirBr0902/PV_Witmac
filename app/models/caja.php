@@ -37,13 +37,16 @@ class Caja extends BaseModel {
      */
     public function getResumenActual($cajaId) {
         // 1. VENTAS DEL TURNO (Solo el pago inicial / enganche)
-        // Calculamos: monto_pagado de la venta - suma de sus abonos = Enganche Inicial
+        // Usamos LEAST para asegurar que si el pago fue mayor al total (hubo cambio), solo se sume el total de la venta.
+        // Fórmula: Ingreso Real = (Lo pagado [tope al total]) - (Abonos registrados)
         $sqlVentas = "SELECT 
             COALESCE(SUM(CASE WHEN v.metodo_pago = 'efectivo' THEN 
-                (v.monto_pagado - COALESCE((SELECT SUM(monto) FROM abonos WHERE venta_id = v.id), 0)) 
+                (CASE WHEN v.monto_pagado > v.total THEN v.total ELSE v.monto_pagado END 
+                 - COALESCE((SELECT SUM(monto) FROM abonos WHERE venta_id = v.id), 0)) 
             ELSE 0 END), 0) as efectivo,
             COALESCE(SUM(CASE WHEN v.metodo_pago = 'transferencia' THEN 
-                (v.monto_pagado - COALESCE((SELECT SUM(monto) FROM abonos WHERE venta_id = v.id), 0)) 
+                (CASE WHEN v.monto_pagado > v.total THEN v.total ELSE v.monto_pagado END 
+                 - COALESCE((SELECT SUM(monto) FROM abonos WHERE venta_id = v.id), 0)) 
             ELSE 0 END), 0) as transferencia
             FROM ventas v 
             WHERE v.caja_id = ? AND v.estado != 'cancelada'";
@@ -145,7 +148,11 @@ class Caja extends BaseModel {
         $caja['abonos_detalle'] = $abonoModel->getByCaja($cajaId);
 
         // Ventas de la sesión
-        $sqlV = "SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre 
+        // ingreso_inicial = (Lo pagado topado al total) - (Suma de abonos)
+        $sqlV = "SELECT v.*, c.nombre as cliente_nombre, u.nombre as vendedor_nombre,
+                 ( (CASE WHEN v.monto_pagado > v.total THEN v.total ELSE v.monto_pagado END) 
+                   - COALESCE((SELECT SUM(monto) FROM abonos WHERE venta_id = v.id), 0)
+                 ) as ingreso_inicial
                  FROM ventas v 
                  LEFT JOIN clientes c ON v.cliente_id = c.id 
                  LEFT JOIN usuarios u ON v.vendedor_id = u.id

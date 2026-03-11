@@ -171,7 +171,7 @@ Esta acción cerrará la caja actual.`);
 }
 
 // Formateador local para fecha y hora
-const formatDateTime = (d) => d ? new Date(d).toLocaleString("es-MX") : "-";
+
 
 // ========== HISTORIAL DE CORTES ==========
 
@@ -261,9 +261,9 @@ async function verDetalleSesionCaja(id) {
 
     const c = res.data;
     
-    // Cálculos precisos basados en los listados reales
-    const vEfe = c.ventas.reduce((sum, v) => v.metodo_pago === 'efectivo' ? sum + parseFloat(v.monto_pagado) : sum, 0);
-    const vTra = c.ventas.reduce((sum, v) => v.metodo_pago === 'transferencia' ? sum + parseFloat(v.monto_pagado) : sum, 0);
+    // Cálculos precisos basados en los ingresos reales del momento
+    const vEfe = c.ventas.reduce((sum, v) => v.metodo_pago === 'efectivo' ? sum + parseFloat(v.ingreso_inicial) : sum, 0);
+    const vTra = c.ventas.reduce((sum, v) => v.metodo_pago === 'transferencia' ? sum + parseFloat(v.ingreso_inicial) : sum, 0);
     
     const aEfe = (c.abonos_detalle || []).reduce((sum, a) => a.metodo_pago === 'efectivo' ? sum + parseFloat(a.monto) : sum, 0);
     const aTra = (c.abonos_detalle || []).reduce((sum, a) => a.metodo_pago === 'transferencia' ? sum + parseFloat(a.monto) : sum, 0);
@@ -350,7 +350,7 @@ async function verDetalleSesionCaja(id) {
             <h6 class="border-bottom pb-1 mb-2"><i class="bi bi-cart"></i> Ventas del Turno</h6>
             <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
                 <table class="table table-sm table-striped small">
-                    <thead><tr class="sticky-top bg-white"><th>Hora</th><th>Folio</th><th>Vendedor</th><th>Cliente</th><th>Método</th><th>Cobrado</th><th class="text-end">Total</th></tr></thead>
+                    <thead><tr class="sticky-top bg-white"><th>Hora</th><th>Folio</th><th>Vendedor</th><th>Cliente</th><th>Método</th><th>Ingreso Real</th><th class="text-end">Total Nota</th></tr></thead>
                     <tbody>
                         ${c.ventas.length ? c.ventas.map(v => `
                             <tr>
@@ -359,8 +359,8 @@ async function verDetalleSesionCaja(id) {
                                 <td><small>${v.vendedor_nombre}</small></td>
                                 <td><small>${v.cliente_nombre || 'General'}</small></td>
                                 <td><span class="text-${v.metodo_pago === 'efectivo' ? 'success' : 'primary'}">${v.metodo_pago.toUpperCase()}</span></td>
-                                <td class="text-success">${formatCurrency(v.monto_pagado)}</td>
-                                <td class="text-end">${formatCurrency(v.total)}</td>
+                                <td class="text-success fw-bold">${formatCurrency(v.ingreso_inicial)}</td>
+                                <td class="text-end text-muted">${formatCurrency(v.total)}</td>
                             </tr>
                         `).join('') : '<tr><td colspan="7" class="text-center text-muted">Sin ventas</td></tr>'}
                     </tbody>
@@ -396,8 +396,8 @@ function exportarCorteDetalladoPDF(c) {
     doc.text(`Cierre: ${c.fecha_cierre ? formatDateTime(c.fecha_cierre) : 'ABIERTA'}`, 14, 35);
     doc.text(`Cajero: ${c.usuario_apertura_nombre}`, 14, 40);
 
-    const vEfe = c.ventas.reduce((sum, v) => v.metodo_pago === 'efectivo' ? sum + parseFloat(v.monto_pagado) : sum, 0);
-    const vTra = c.ventas.reduce((sum, v) => v.metodo_pago === 'transferencia' ? sum + parseFloat(v.monto_pagado) : sum, 0);
+    const vEfe = c.ventas.reduce((sum, v) => v.metodo_pago === 'efectivo' ? sum + parseFloat(v.ingreso_inicial) : sum, 0);
+    const vTra = c.ventas.reduce((sum, v) => v.metodo_pago === 'transferencia' ? sum + parseFloat(v.ingreso_inicial) : sum, 0);
     const aEfe = (c.abonos_detalle || []).reduce((sum, a) => a.metodo_pago === 'efectivo' ? sum + parseFloat(a.monto) : sum, 0);
     const aTra = (c.abonos_detalle || []).reduce((sum, a) => a.metodo_pago === 'transferencia' ? sum + parseFloat(a.monto) : sum, 0);
 
@@ -475,14 +475,14 @@ function exportarCorteDetalladoPDF(c) {
     doc.text("LISTADO DE VENTAS DEL TURNO", 14, doc.lastAutoTable.finalY + 10);
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 13,
-        head: [['Hora', 'Folio', 'Vendedor', 'Cliente', 'Método', 'Cobrado', 'Total']],
+        head: [['Hora', 'Folio', 'Vendedor', 'Cliente', 'Método', 'Ingreso Real', 'Total Nota']],
         body: (c.ventas || []).map(v => [
             new Date(v.fecha_venta).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             v.folio,
             v.vendedor_nombre,
             v.cliente_nombre || 'General',
             v.metodo_pago.toUpperCase(),
-            formatCurrency(v.monto_pagado),
+            formatCurrency(v.ingreso_inicial),
             formatCurrency(v.total)
         ]),
         theme: 'grid',

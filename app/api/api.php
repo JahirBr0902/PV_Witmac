@@ -11,6 +11,7 @@ require_once __DIR__ . '/../controllers/usuariosController.php';
 require_once __DIR__ . '/../controllers/dashboardController.php';
 require_once __DIR__ . '/../controllers/cajaController.php';
 require_once __DIR__ . '/../controllers/movimientosCajaController.php';
+require_once __DIR__ . '/../controllers/configuracionController.php';
 require_once __DIR__ . '/../helpers/session.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -118,6 +119,15 @@ try {
             $ctrl = new dashboardController();
             switch ($action) {
                 case 'resumen': $ctrl->resumen(); break;
+                default: error('Acción no encontrada'); break;
+            }
+            break;
+
+        case 'configuracion':
+            $ctrl = new configuracionController();
+            switch ($action) {
+                case 'get': $ctrl->get(); break;
+                case 'save': $ctrl->save(); break;
                 default: error('Acción no encontrada'); break;
             }
             break;

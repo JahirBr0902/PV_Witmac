@@ -87,6 +87,7 @@ async function loadVentasReporte() {
 
         return `
         <div class="btn-group">
+            <button class="btn btn-sm btn-outline-secondary" onclick="imprimirTicketVenta(${v.id})" title="Imprimir Ticket"><i class="bi bi-printer"></i></button>
             <button class="btn btn-sm btn-info" onclick="verDetalleVenta(${v.id})" title="Ver detalle"><i class="bi bi-eye"></i></button>
             ${puedeAlterar ? `
                 <button class="btn btn-sm btn-warning" onclick="prepararEdicionVenta(${v.id})" title="Editar (Límite 15min)"><i class="bi bi-pencil"></i></button>

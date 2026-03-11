@@ -87,8 +87,13 @@ function loadVentas() {
                             </div>
                             
                             <div class="mb-3" id="saldoContainer" style="display: none;">
-                                <label class="form-label text-warning">Saldo pendiente</label>
+                                <label class="form-label text-warning fw-bold">Saldo pendiente (Crédito)</label>
                                 <h5 class="text-warning" id="saldoAmount">$0.00</h5>
+                            </div>
+
+                            <div class="mb-3" id="cambioContainer" style="display: none;">
+                                <label class="form-label text-success fw-bold">Cambio a devolver</label>
+                                <h3 class="text-success fw-bold" id="cambioAmount">$0.00</h3>
                             </div>
                             
                             <button class="btn btn-success w-100 btn-lg" id="btnCompletarVenta" disabled>
@@ -344,11 +349,30 @@ function validarMontoPagado() {
     const montoPagado = parseFloat(document.getElementById('montoPagado')?.value) || 0;
     const metodoPago = document.getElementById('metodoPago')?.value;
     const btnCompletar = document.getElementById('btnCompletarVenta');
+    
     const saldoContainer = document.getElementById('saldoContainer');
     const saldoAmount = document.getElementById('saldoAmount');
-    const saldo = Math.max(0, total - montoPagado);
-    if (saldoContainer) saldoContainer.style.display = saldo > 0 ? 'block' : 'none';
-    if (saldoAmount) saldoAmount.textContent = '$' + saldo.toFixed(2);
+    const cambioContainer = document.getElementById('cambioContainer');
+    const cambioAmount = document.getElementById('cambioAmount');
+
+    const diferencia = total - montoPagado;
+
+    if (diferencia > 0) {
+        // Hay deuda (Crédito)
+        if (saldoContainer) saldoContainer.style.display = 'block';
+        if (saldoAmount) saldoAmount.textContent = formatCurrency(diferencia);
+        if (cambioContainer) cambioContainer.style.display = 'none';
+    } else if (diferencia < 0) {
+        // Hay cambio a devolver
+        if (saldoContainer) saldoContainer.style.display = 'none';
+        if (cambioContainer) cambioContainer.style.display = 'block';
+        if (cambioAmount) cambioAmount.textContent = formatCurrency(Math.abs(diferencia));
+    } else {
+        // Pago exacto
+        if (saldoContainer) saldoContainer.style.display = 'none';
+        if (cambioContainer) cambioContainer.style.display = 'none';
+    }
+
     if (btnCompletar) btnCompletar.disabled = !(montoPagado >= 0 && metodoPago);
 }
 
@@ -379,12 +403,22 @@ async function completarVenta() {
 
   try {
     const response = await apiPost(editId ? "ventas/editar" : "ventas/nuevo", venta);
-    await Swal.fire({
+    
+    // Preguntar si desea imprimir el ticket
+    const { isConfirmed: imprimir } = await Swal.fire({
       icon: 'success',
       title: editId ? '¡Venta actualizada!' : '¡Venta completada!',
       html: `<p>Folio: <strong>${response.folio}</strong></p><p>Total: <strong>$${parseFloat(response.total).toFixed(2)}</strong></p>`,
-      confirmButtonText: 'Aceptar'
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-printer"></i> Imprimir Ticket',
+      cancelButtonText: 'No imprimir',
+      confirmButtonColor: '#0d6efd'
     });
+
+    if (imprimir) {
+        imprimirTicketVenta(response.id);
+    }
+
     sessionStorage.removeItem('editandoVentaId');
     cart = [];
     updateCartDisplay();

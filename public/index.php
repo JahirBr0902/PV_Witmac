@@ -7,7 +7,7 @@ checkAuth();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Witmac Punto de Venta</title>
+    <title id="pageTitle">Punto de Venta</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/styles.css">
@@ -17,8 +17,8 @@ checkAuth();
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-shop-window"></i> Punto de Venta Witmac
+            <a class="navbar-brand" href="#" id="navbarBrand">
+                <i class="bi bi-shop-window"></i> Punto de Venta
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -64,6 +64,8 @@ checkAuth();
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" data-page="cortes"><i class="bi bi-safe2 me-2"></i> Cortes de Caja</a></li>
                             <li><a class="dropdown-item" href="#" data-page="usuarios"><i class="bi bi-person-badge me-2"></i> Usuarios</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-page="configuracion"><i class="bi bi-gear me-2"></i> Configuración</a></li>
                         </ul>
                     </li>
                     <?php endif; ?>
@@ -109,6 +111,7 @@ checkAuth();
     <script src="assets/js/inventarios.js"></script>
     <script src="assets/js/reportes.js"></script>
     <script src="assets/js/creditos.js"></script>
+    <script src="assets/js/configuracion.js"></script>
     <script src="assets/js/main.js"></script>
 </body>
 </html>
