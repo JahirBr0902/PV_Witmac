@@ -24,6 +24,20 @@ async function apiPost(endpoint, data = {}, options = {}) {
       body: JSON.stringify(data),
     });
 
+    // Manejo de Sesión Expirada (Error 401)
+    if (res.status === 401) {
+      if (showLoader) hideLoading();
+      await Swal.fire({
+        title: "Sesión Expirada",
+        text: "Tu sesión ha caducado por inactividad. Por favor, inicia sesión de nuevo.",
+        icon: "warning",
+        confirmButtonText: "Ir al Login",
+        allowOutsideClick: false
+      });
+      window.location.href = "login.php";
+      return null;
+    }
+
     const json = await res.json();
     if (showLoader) hideLoading();
 

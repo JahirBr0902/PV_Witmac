@@ -27,6 +27,11 @@ try {
         exit;
     }
 
+    // Proteger todas las rutas excepto la autenticación de usuarios
+    if (!($resource === 'usuarios' && $action === 'autenticar')) {
+        checkAuthApi();
+    }
+
     switch ($resource) {
         case 'movimientos':
             $ctrl = new movimientosCajaController();

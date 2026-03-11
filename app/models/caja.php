@@ -33,36 +33,46 @@ class Caja extends BaseModel {
     }
 
     /**
-     * Obtiene el resumen actual de la caja abierta (ventas, abonos y movimientos)
+     * Obtiene el resumen actual de la caja abierta
      */
     public function getResumenActual($cajaId) {
-        // Sumar ventas en efectivo vinculadas a esta caja
+        // 1. VENTAS DEL TURNO (Solo el pago inicial / enganche)
+        // Calculamos: monto_pagado de la venta - suma de sus abonos = Enganche Inicial
         $sqlVentas = "SELECT 
-                        COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN monto_pagado ELSE 0 END), 0) as efectivo,
-                        COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN monto_pagado ELSE 0 END), 0) as transferencia
-                      FROM ventas 
-                      WHERE caja_id = ? AND estado != 'cancelada'";
+            COALESCE(SUM(CASE WHEN v.metodo_pago = 'efectivo' THEN 
+                (v.monto_pagado - COALESCE((SELECT SUM(monto) FROM abonos WHERE venta_id = v.id), 0)) 
+            ELSE 0 END), 0) as efectivo,
+            COALESCE(SUM(CASE WHEN v.metodo_pago = 'transferencia' THEN 
+                (v.monto_pagado - COALESCE((SELECT SUM(monto) FROM abonos WHERE venta_id = v.id), 0)) 
+            ELSE 0 END), 0) as transferencia
+            FROM ventas v 
+            WHERE v.caja_id = ? AND v.estado != 'cancelada'";
         
-        $stmt = $this->db->prepare($sqlVentas);
-        $stmt->execute([$cajaId]);
-        $ventas = $stmt->fetch();
+        $stmtV = $this->db->prepare($sqlVentas);
+        $stmtV->execute([$cajaId]);
+        $ventasTurno = $stmtV->fetch();
 
-        // Sumar abonos recibidos en esta caja
-        require_once __DIR__ . '/abonos.php';
-        $abonoModel = new Abonos();
-        $abonosEfectivo = $abonoModel->getSumByCaja($cajaId, 'efectivo');
-        $abonosTransfer = $abonoModel->getSumByCaja($cajaId, 'transferencia');
+        // 2. ABONOS RECIBIDOS EN EL TURNO (Cualquier abono hecho hoy, sea a venta nueva o vieja)
+        $sqlAbonos = "SELECT 
+            COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN monto ELSE 0 END), 0) as efectivo,
+            COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN monto ELSE 0 END), 0) as transferencia
+            FROM abonos 
+            WHERE caja_id = ?";
+        
+        $stmtA = $this->db->prepare($sqlAbonos);
+        $stmtA->execute([$cajaId]);
+        $abonosTurno = $stmtA->fetch();
 
-        // Sumar movimientos extras (entradas/salidas)
+        // 3. MOVIMIENTOS EXTRAS (Entradas/Salidas manuales)
         require_once __DIR__ . '/movimientos_caja.php';
         $movModel = new MovimientosCaja();
         $movimientos = $movModel->getSumasPorCaja($cajaId);
 
         return [
-            'efectivo' => (float)$ventas['efectivo'],
-            'transferencia' => (float)$ventas['transferencia'],
-            'abonos_efectivo' => $abonosEfectivo,
-            'abonos_transfer' => $abonosTransfer,
+            'efectivo' => (float)$ventasTurno['efectivo'],
+            'transferencia' => (float)$ventasTurno['transferencia'],
+            'abonos_efectivo' => (float)$abonosTurno['efectivo'],
+            'abonos_transfer' => (float)$abonosTurno['transferencia'],
             'entradas' => (float)$movimientos['entradas'],
             'salidas' => (float)$movimientos['salidas']
         ];
@@ -78,15 +88,16 @@ class Caja extends BaseModel {
         }
 
         $resumen = $this->getResumenActual($cajaId);
-        $ventasEfectivo = (float)$resumen['efectivo'];
-        $ventasTransferencia = (float)$resumen['transferencia'];
-        $abonosEfe = (float)$resumen['abonos_efectivo'];
-        $abonosTra = (float)$resumen['abonos_transfer'];
+        
+        // Sumamos TODO el efectivo que entró (Ventas + Abonos)
+        $totalEfectivoRecibido = (float)$resumen['efectivo'] + (float)$resumen['abonos_efectivo'];
+        $totalTransferenciaRecibido = (float)$resumen['transferencia'] + (float)$resumen['abonos_transfer'];
+        
         $entradas = (float)$resumen['entradas'];
         $salidas = (float)$resumen['salidas'];
         
-        // El monto esperado incluye: inicial + ventas efe + abonos efe + entradas efe - salidas efe
-        $montoEsperado = (float)$caja['monto_inicial'] + $ventasEfectivo + $abonosEfe + $entradas - $salidas;
+        // El monto esperado incluye: inicial + efectivo de ventas + efectivo de abonos + entradas - salidas
+        $montoEsperado = (float)$caja['monto_inicial'] + $totalEfectivoRecibido + $entradas - $salidas;
         $diferencia = $montoReal - $montoEsperado;
 
         return $this->update($cajaId, [
@@ -95,8 +106,8 @@ class Caja extends BaseModel {
             'monto_final_esperado' => $montoEsperado,
             'monto_final_real' => $montoReal,
             'diferencia' => $diferencia,
-            'ventas_efectivo' => $ventasEfectivo + $abonosEfe, 
-            'ventas_transferencia' => $ventasTransferencia + $abonosTra,
+            'ventas_efectivo' => $totalEfectivoRecibido, 
+            'ventas_transferencia' => $totalTransferenciaRecibido,
             'estado' => 'cerrada'
         ]);
     }

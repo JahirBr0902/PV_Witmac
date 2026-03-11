@@ -124,6 +124,17 @@ function initVentasModule() {
         }
         searchTimeout = setTimeout(() => searchProducts(query), 300);
     });
+
+    // Soporte para Lector de Código de Barras (Tecla Enter)
+    searchInput.addEventListener('keypress', async function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = this.value.trim();
+            if (query.length > 0) {
+                await processBarcode(query);
+            }
+        }
+    });
     
     document.getElementById('descuento').addEventListener('input', updateCartSummary);
     document.getElementById('montoPagado').addEventListener('input', validarMontoPagado);
@@ -370,4 +381,27 @@ async function completarVenta() {
         document.getElementById('btnCompletarVenta').disabled = true;
     }
   } catch (error) { console.error("Error procesando venta:", error); }
+}
+
+async function processBarcode(code) {
+    try {
+        const response = await apiPost("productos/buscar", { q: code }, { showLoader: false });
+        if (response.success && response.data.length > 0) {
+            // Si hay una coincidencia exacta por código, o solo un resultado, lo añadimos
+            const exactMatch = response.data.find(p => p.codigo === code) || (response.data.length === 1 ? response.data[0] : null);
+            
+            if (exactMatch) {
+                addToCart(exactMatch);
+                document.getElementById("searchProduct").value = "";
+                document.getElementById("searchResults").style.display = "none";
+            } else {
+                // Si hay varios parecidos pero ninguno exacto, mostramos los resultados
+                searchProducts(code);
+            }
+        } else {
+            notify("No encontrado", `El código ${code} no existe`, "warning");
+        }
+    } catch (error) {
+        console.error("Error procesando código de barras:", error);
+    }
 }

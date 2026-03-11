@@ -17,8 +17,17 @@ function updateCajaUI() {
     if (!indicator) return;
 
     if (cajaActual) {
-        indicator.innerHTML = `<span class="badge bg-success" onclick="verResumenCaja()" style="cursor:pointer">
-            <i class="bi bi-unlock-fill"></i> Caja Abierta: ${formatCurrency(cajaActual.monto_inicial)}
+        const resumen = cajaActual.resumen;
+        // Cálculo del efectivo real que debe haber en el cajón:
+        // Inicial + Ventas (Efectivo) + Abonos (Efectivo) + Entradas - Salidas
+        const totalEfectivo = parseFloat(cajaActual.monto_inicial) + 
+                              parseFloat(resumen.efectivo) + 
+                              parseFloat(resumen.abonos_efectivo || 0) + 
+                              parseFloat(resumen.entradas) - 
+                              parseFloat(resumen.salidas);
+
+        indicator.innerHTML = `<span class="badge bg-success" onclick="verResumenCaja()" style="cursor:pointer" title="Clic para ver detalle">
+            <i class="bi bi-cash-coin"></i> Efectivo en Caja: ${formatCurrency(totalEfectivo)}
         </span>`;
     } else {
         indicator.innerHTML = `<span class="badge bg-danger" onclick="showAbrirCajaModal()" style="cursor:pointer">
