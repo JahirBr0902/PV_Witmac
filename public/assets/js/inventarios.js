@@ -131,7 +131,7 @@ async function showMovimientoInventarioModal() {
   document.getElementById("movimientoForm").reset();
   document.getElementById("movProductoId").value = "";
   document.getElementById("selectedProductInfo").innerHTML = "";
-  new bootstrap.Modal(document.getElementById("movimientoModal")).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("movimientoModal")).show();
 }
 
 async function guardarMovimiento() {
@@ -161,7 +161,7 @@ async function verHistorial(productoId, nombre) {
       { field: "motivo" },
       { field: "usuario_nombre" }
     ]);
-    new bootstrap.Modal(document.getElementById("historialModal")).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("historialModal")).show();
   }
 }
 

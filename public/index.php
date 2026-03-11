@@ -28,7 +28,7 @@ checkAuth();
                     <li class="nav-item me-3" id="cajaStatusIndicator">
                         <!-- Se llena dinámicamente desde caja.js -->
                     </li>
-                    <li class="nav-item dropdown">
+                    <li class="nav-item">
                         <a class="nav-link active" href="#" data-page="dashboard">
                             <i class="bi bi-house"></i> Inicio
                         </a>
@@ -38,20 +38,6 @@ checkAuth();
                             <i class="bi bi-cart"></i> Nueva Venta
                         </a>
                     </li>
-                    <?php if ($_SESSION['rol'] === 'admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="productos">
-                            <i class="bi bi-box"></i> Productos
-                        </a>
-                    </li>
-                    <?php if ($_SESSION['rol'] === 'admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="inventario">
-                            <i class="bi bi-person-badge"></i> Inventario
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                    <?php endif; ?>
                     <li class="nav-item">
                         <a class="nav-link" href="#" data-page="clientes">
                             <i class="bi bi-people"></i> Clientes
@@ -59,7 +45,7 @@ checkAuth();
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" data-page="creditos">
-                            <i class="bi bi-cash-stack"></i> Cuentas por Cobrar
+                            <i class="bi bi-cash-stack"></i> Créditos
                         </a>
                     </li>
                     <li class="nav-item">
@@ -68,19 +54,21 @@ checkAuth();
                         </a>
                     </li>
                     <?php if ($_SESSION['rol'] === 'admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="cortes">
-                            <i class="bi bi-safe2"></i> Cortes
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-gear"></i> Administración
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="usuarios">
-                            <i class="bi bi-person-badge"></i> Usuarios
-                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="#" data-page="productos"><i class="bi bi-box me-2"></i> Productos</a></li>
+                            <li><a class="dropdown-item" href="#" data-page="inventario"><i class="bi bi-boxes me-2"></i> Inventario</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-page="cortes"><i class="bi bi-safe2 me-2"></i> Cortes de Caja</a></li>
+                            <li><a class="dropdown-item" href="#" data-page="usuarios"><i class="bi bi-person-badge me-2"></i> Usuarios</a></li>
+                        </ul>
                     </li>
                     <?php endif; ?>
                 </ul>
-                <div class="d-flex align-items-center text-white">
+                <div class="ms-lg-3 d-flex align-items-center text-white border-start ps-lg-3 mt-3 mt-lg-0">
                     <span class="me-3">
                         <i class="bi bi-person-circle"></i> 
                         <?php echo htmlspecialchars($_SESSION['usuario_nombre']); ?>

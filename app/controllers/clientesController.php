@@ -20,6 +20,8 @@ class clientesController
                 $data = $this->model->getById((int)$body['id']);
             } elseif (isset($body['nombre'])) {
                 $data = $this->model->buscarPorNombre($body['nombre']);
+            } elseif (isset($body['q'])) {
+                $data = $this->model->buscarPorNombre($body['q']);
             } else {
                 $data = $this->model->getAll();
             }
@@ -114,7 +116,7 @@ class clientesController
         }
 
         try {
-            $data = $this->model->obtenersVentasCliente((int)$body['id']);
+            $data = $this->model->obtenerVentasCliente((int)$body['id']);
             response($data);
         } catch (Exception $e) {
             error($e->getMessage());

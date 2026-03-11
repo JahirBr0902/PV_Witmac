@@ -54,7 +54,7 @@ function showUsuarioModal() {
   document.getElementById("passwordLabel").textContent = "Contraseña *";
   document.getElementById("usuarioPassword").required = true;
   document.getElementById("passwordHelp").classList.add("d-none");
-  new bootstrap.Modal(document.getElementById("usuarioModal")).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("usuarioModal")).show();
 }
 
 function editUsuario(u) {

@@ -16,15 +16,25 @@ function initNavigation() {
   navLinks.forEach((link) => {
     link.addEventListener("click", function (e) {
       e.preventDefault();
-      const page = this.dataset.page;
-
-      // Actualizar links activos
-      navLinks.forEach((l) => l.classList.remove("active"));
-      this.classList.add("active");
-
-      loadPage(page);
+      loadPage(this.dataset.page);
     });
   });
+}
+
+function setActiveLink(page) {
+  const navLinks = document.querySelectorAll("[data-page]");
+  navLinks.forEach((l) => {
+    l.classList.remove("active");
+    const dropdownToggle = l.closest('.dropdown')?.querySelector('.dropdown-toggle');
+    if (dropdownToggle) dropdownToggle.classList.remove("active");
+  });
+  
+  const target = document.querySelector(`[data-page="${page}"]`);
+  if (target) {
+    target.classList.add("active");
+    const parentToggle = target.closest('.dropdown')?.querySelector('.dropdown-toggle');
+    if (parentToggle) parentToggle.classList.add("active");
+  }
 }
 
 // Cerrar sesión
@@ -59,6 +69,7 @@ function initLogout() {
 // Cargar página (Router simple)
 function loadPage(page) {
   currentPage = page;
+  setActiveLink(page);
   
   switch (page) {
     case "dashboard":

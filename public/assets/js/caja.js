@@ -191,13 +191,12 @@ async function loadCortes() {
                                 <tr>
                                     <th>Apertura</th>
                                     <th>Cierre</th>
-                                    <th>Vendedor</th>
-                                    <th>M. Inicial</th>
-                                    <th>Ventas</th>
-                                    <th>Entradas (+)</th>
-                                    <th>Salidas (-)</th>
-                                    <th>Esperado</th>
-                                    <th>Real</th>
+                                    <th>Caja Inicial</th>
+                                    <th>Total Ventas</th>
+                                    <th>Entradas Extra</th>
+                                    <th>Salidas Extra</th>
+                                    <th>Total Turno</th>
+                                    <th>Cierre Caja</th>
                                     <th>Diferencia</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -222,14 +221,16 @@ async function renderHistorialCortes() {
     const res = await apiPost('caja/historial', filtros);
     
     fillTable("cortesTableBody", res.data, [
-        { render: (c) => `<small>${formatDateTime(c.fecha_apertura)}</small>` },
-        { render: (c) => c.fecha_cierre ? `<small>${formatDateTime(c.fecha_cierre)}</small>` : '<span class="badge bg-success">Abierta</span>' },
-        { field: "usuario_apertura" },
+        { render: (c) => `<strong>${formatDateTime(c.fecha_apertura)}</strong><br><small class="text-muted">${c.usuario_apertura}</small>` },
+        { render: (c) => c.fecha_cierre 
+            ? `<strong>${formatDateTime(c.fecha_cierre)}</strong><br><small class="text-muted">${c.usuario_cierre || '-'}</small>` 
+            : '<span class="badge bg-success">Abierta</span>' 
+        },
         { render: (c) => formatCurrency(c.monto_inicial) },
         { render: (c) => formatCurrency(c.ventas_efectivo) },
         { render: (c) => `<span class="text-success">${formatCurrency(c.entradas_extras)}</span>` },
         { render: (c) => `<span class="text-danger">${formatCurrency(c.salidas_extras)}</span>` },
-        { render: (c) => formatCurrency(c.monto_final_esperado) },
+        { render: (c) => `<strong>${formatCurrency(c.monto_final_esperado)}</strong>` },
         { render: (c) => c.estado === 'cerrada' ? formatCurrency(c.monto_final_real) : '-' },
         { render: (c) => {
             if (c.estado !== 'cerrada') return '-';
@@ -321,9 +322,9 @@ async function verDetalleSesionCaja(id) {
             </div>
 
             <h6 class="border-bottom pb-1 mb-2 mt-4"><i class="bi bi-cash-stack"></i> Detalle de Abonos</h6>
-            <div class="table-responsive mb-3" style="max-height: 150px;">
+            <div class="table-responsive mb-3" style="max-height: 250px; overflow-y: auto;">
                 <table class="table table-sm table-striped small">
-                    <thead><tr><th>Hora</th><th>Venta</th><th>Método</th><th class="text-end">Monto</th></tr></thead>
+                    <thead><tr class="sticky-top bg-white"><th>Hora</th><th>Venta</th><th>Método</th><th class="text-end">Monto</th></tr></thead>
                     <tbody>
                         ${c.abonos_detalle.length ? c.abonos_detalle.map(a => `
                             <tr>
@@ -338,9 +339,9 @@ async function verDetalleSesionCaja(id) {
             </div>
 
             <h6 class="border-bottom pb-1 mb-2"><i class="bi bi-cart"></i> Ventas del Turno</h6>
-            <div class="table-responsive" style="max-height: 200px;">
+            <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
                 <table class="table table-sm table-striped small">
-                    <thead><tr><th>Hora</th><th>Folio</th><th>Vendedor</th><th>Cliente</th><th>Método</th><th>Cobrado</th><th class="text-end">Total</th></tr></thead>
+                    <thead><tr class="sticky-top bg-white"><th>Hora</th><th>Folio</th><th>Vendedor</th><th>Cliente</th><th>Método</th><th>Cobrado</th><th class="text-end">Total</th></tr></thead>
                     <tbody>
                         ${c.ventas.length ? c.ventas.map(v => `
                             <tr>

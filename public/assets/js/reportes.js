@@ -10,8 +10,9 @@ async function loadReportes() {
 
         <div class="card mb-4"><div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-3"><label class="form-label">Desde</label><input type="date" class="form-control" id="fechaInicio" value="${hace7Dias}"></div>
-                <div class="col-md-3"><label class="form-label">Hasta</label><input type="date" class="form-control" id="fechaFin" value="${hoy}"></div>
+                <div class="col-md-2"><label class="form-label">Folio</label><input type="text" class="form-control" id="filtroFolio" placeholder="V-2024..."></div>
+                <div class="col-md-2"><label class="form-label">Desde</label><input type="date" class="form-control" id="fechaInicio" value="${hace7Dias}"></div>
+                <div class="col-md-2"><label class="form-label">Hasta</label><input type="date" class="form-control" id="fechaFin" value="${hoy}"></div>
                 <div class="col-md-2"><label class="form-label">Estado</label>
                     <select class="form-select" id="filtroEstado">
                         <option value="Todos">Todos</option><option value="completada">Completada</option>
@@ -50,16 +51,27 @@ async function loadReportes() {
     </div></div></div>`;
 
     await loadVentasReporte();
+
+    // Agregar evento Enter para búsqueda por folio
+    document.getElementById("filtroFolio").addEventListener("keypress", function(e) {
+        if (e.key === 'Enter') {
+            loadVentasReporte();
+        }
+    });
 }
 
 async function loadVentasReporte() {
   const filtros = {
+    folio: document.getElementById("filtroFolio").value,
     fechaInicio: document.getElementById("fechaInicio").value,
     fechaFin: document.getElementById("fechaFin").value,
     estado: document.getElementById("filtroEstado").value
   };
 
   const data = await apiPost("ventas/listar", filtros);
+  const user = await apiPost("session/info", {});
+  const ahora = new Date();
+
   fillTable("ventasReporteBody", data, [
     { render: (v) => `<strong>${v.folio}</strong>` },
     { field: "cliente_nombre" },
@@ -68,15 +80,67 @@ async function loadVentasReporte() {
     { render: (v) => `<span class="badge bg-info">${v.metodo_pago}</span>` },
     { render: (v) => formatDateTime(v.fecha_venta) },
     { render: (v) => `<span class="badge bg-${v.estado === 'completada' ? 'success' : (v.estado === 'cancelada' ? 'danger' : 'warning')}">${v.estado}</span>` },
-    { render: (v) => `
-        <button class="btn btn-sm btn-info" onclick="verDetalleVenta(${v.id})"><i class="bi bi-eye"></i> Ver</button>
-    `}
+    { render: (v) => {
+        const fechaVenta = new Date(v.fecha_venta);
+        const diffMinutos = (ahora - fechaVenta) / (1000 * 60);
+        const puedeAlterar = user.rol === 'admin' && diffMinutos <= 15 && v.estado !== 'cancelada';
+
+        return `
+        <div class="btn-group">
+            <button class="btn btn-sm btn-info" onclick="verDetalleVenta(${v.id})" title="Ver detalle"><i class="bi bi-eye"></i></button>
+            ${puedeAlterar ? `
+                <button class="btn btn-sm btn-warning" onclick="prepararEdicionVenta(${v.id})" title="Editar (Límite 15min)"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="confirmarCancelacionVenta(${v.id}, '${v.folio}')" title="Cancelar (Límite 15min)"><i class="bi bi-trash"></i></button>
+            ` : ''}
+        </div>
+    `} }
   ]);
 }
 
+async function confirmarCancelacionVenta(id, folio) {
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Cancelar venta?',
+        text: `Se cancelará la venta ${folio} y los productos regresarán al inventario. Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, cancelar',
+        cancelButtonText: 'No, mantener',
+        confirmButtonColor: '#d33'
+    });
+
+    if (isConfirmed) {
+        const res = await apiPost("ventas/cancelar", { id });
+        if (res.success) {
+            Swal.fire('Cancelada', res.message, 'success');
+            loadVentasReporte();
+        }
+    }
+}
+
+async function prepararEdicionVenta(id) {
+    const { isConfirmed } = await Swal.fire({
+        title: 'Editar Venta',
+        text: "Se cargarán los datos de esta venta en el módulo de ventas. Al guardar, se reemplazará la venta anterior y se ajustará el inventario.",
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Ir a editar',
+        cancelButtonColor: '#3085d6'
+    });
+
+    if (isConfirmed) {
+        // Guardamos en sessionStorage para que el módulo de ventas sepa que es edición
+        sessionStorage.setItem('editandoVentaId', id);
+        // Cambiamos a la página de ventas
+        document.querySelector('[data-page="ventas"]').click();
+    }
+}
+
 async function verDetalleVenta(ventaId) {
-  const v = await apiPost("ventas/listar", { id: ventaId });
+  // Desactivamos el loader global para evitar conflictos con el modal y cambios de scrollbar
+  const v = await apiPost("ventas/listar", { id: ventaId }, { showLoader: false });
   
+  if (!v) return;
+
   let html = `
     <div class="row mb-3">
       <div class="col-6">
@@ -86,19 +150,25 @@ async function verDetalleVenta(ventaId) {
         <p><strong>Vendedor:</strong> ${v.vendedor_nombre}<br><strong>Método:</strong> ${v.metodo_pago}<br><strong>Estado:</strong> ${v.estado}</p>
       </div>
     </div>
-    <table class="table table-sm">
-      <thead class="table-light"><tr><th>Producto</th><th>Precio</th><th>Cant.</th><th>Subtotal</th></tr></thead>
-      <tbody>
-        ${v.detalles.map(d => `<tr><td>${d.producto_nombre}</td><td>${formatCurrency(d.precio_unitario)}</td><td>${d.cantidad}</td><td>${formatCurrency(d.subtotal)}</td></tr>`).join('')}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-sm">
+          <thead class="table-light"><tr><th>Producto</th><th>Precio</th><th>Cant.</th><th>Subtotal</th></tr></thead>
+          <tbody>
+            ${v.detalles.map(d => `<tr><td>${d.producto_nombre}</td><td>${formatCurrency(d.precio_unitario)}</td><td>${d.cantidad}</td><td>${formatCurrency(d.subtotal)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+    </div>
     <div class="row mt-3"><div class="col-6 offset-6 text-end">
         <p>Subtotal: ${formatCurrency(v.subtotal)}<br>Descuento: -${formatCurrency(v.descuento)}<br><h4>Total: ${formatCurrency(v.total)}</h4>
         <span class="text-primary">Pagado: ${formatCurrency(v.monto_pagado)}</span> / <span class="text-warning">Saldo: ${formatCurrency(v.saldo)}</span></p>
     </div></div>`;
 
+  const modalEl = document.getElementById("detalleVentaModal");
   document.getElementById("detalleVentaContent").innerHTML = html;
-  new bootstrap.Modal(document.getElementById("detalleVentaModal")).show();
+  
+  // Usamos getOrCreateInstance para no crear múltiples objetos de control sobre el mismo DOM
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
 }
 
 // Lógica de Exportación
@@ -114,6 +184,7 @@ async function exportarExcel() {
   });
 
   const filtros = {
+    folio: document.getElementById("filtroFolio").value,
     fechaInicio: document.getElementById("fechaInicio").value,
     fechaFin: document.getElementById("fechaFin").value,
     estado: document.getElementById("filtroEstado").value,
@@ -153,6 +224,7 @@ async function exportarPDF() {
   });
 
   const filtros = {
+    folio: document.getElementById("filtroFolio").value,
     fechaInicio: document.getElementById("fechaInicio").value,
     fechaFin: document.getElementById("fechaFin").value,
     estado: document.getElementById("filtroEstado").value,

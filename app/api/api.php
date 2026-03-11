@@ -67,7 +67,10 @@ try {
                 case 'nuevo': $ctrl->nuevo(); break;
                 case 'listar': $ctrl->index(); break;
                 case 'abonar': $ctrl->abonar(); break;
+                case 'abonarMasivo': $ctrl->abonarMasivo(); break;
                 case 'full': $ctrl->getFullVentas(); break;
+                case 'cancelar': $ctrl->cancelar(); break;
+                case 'editar': $ctrl->editar(); break;
                 default: error('Acción no encontrada'); break;
             }
             break;

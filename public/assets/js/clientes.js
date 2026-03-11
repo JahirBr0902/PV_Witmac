@@ -48,7 +48,7 @@ function showClienteModal() {
   document.getElementById("clienteModalTitle").textContent = "Nuevo Cliente";
   document.getElementById("clienteForm").reset();
   document.getElementById("clienteId").value = "";
-  new bootstrap.Modal(document.getElementById("clienteModal")).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("clienteModal")).show();
 }
 
 function editCliente(c) {

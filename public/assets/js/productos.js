@@ -88,7 +88,7 @@ function showProductoModal() {
   document.getElementById("productoForm").reset();
   document.getElementById("productoId").value = "";
   document.getElementById("productoStock").disabled = false;
-  new bootstrap.Modal(document.getElementById("productoModal")).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("productoModal")).show();
 }
 
 function editProducto(p) {
@@ -125,7 +125,7 @@ async function saveProducto() {
 function showStockModal(p) {
   document.getElementById("stockProductoId").value = p.id;
   document.getElementById("stockProductoNombre").textContent = p.nombre;
-  new bootstrap.Modal(document.getElementById("stockModal")).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("stockModal")).show();
 }
 
 async function ajustarStock() {

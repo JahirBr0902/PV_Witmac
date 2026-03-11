@@ -106,9 +106,11 @@ function loadVentas() {
 
 function initVentasModule() {
     cart = [];
-    loadClientesSelect();
+    loadClientesSelect().then(() => {
+        const editId = sessionStorage.getItem('editandoVentaId');
+        if (editId) cargarVentaParaEdicion(editId);
+    });
     
-    // Búsqueda de productos
     const searchInput = document.getElementById('searchProduct');
     const searchResults = document.getElementById('searchResults');
     
@@ -116,64 +118,69 @@ function initVentasModule() {
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
         const query = this.value.trim();
-        
         if (query.length < 2) {
             searchResults.style.display = 'none';
             return;
         }
-        
         searchTimeout = setTimeout(() => searchProducts(query), 300);
     });
     
-    // Descuento
     document.getElementById('descuento').addEventListener('input', updateCartSummary);
-    
-    // Monto pagado
     document.getElementById('montoPagado').addEventListener('input', validarMontoPagado);
-    
-    // Método de pago
     document.getElementById('metodoPago').addEventListener('change', validarMontoPagado);
-    
-    // Completar venta
     document.getElementById('btnCompletarVenta').addEventListener('click', completarVenta);
 }
+
+async function cargarVentaParaEdicion(id) {
+    try {
+        const v = await apiPost("ventas/listar", { id });
+        if (!v) return;
+        document.querySelector('h2').innerHTML = `<i class="bi bi-pencil-square"></i> Editando Venta: ${v.folio}`;
+        cart = v.detalles.map(d => ({
+            id: d.producto_id,
+            codigo: d.codigo || 'N/A',
+            nombre: d.producto_nombre,
+            precio_venta: parseFloat(d.precio_unitario),
+            cantidad: parseInt(d.cantidad),
+            stock: 9999, 
+            subtotal: parseFloat(d.subtotal)
+        }));
+        document.getElementById('selectCliente').value = v.cliente_id || "";
+        document.getElementById('descuento').value = v.descuento;
+        document.getElementById('metodoPago').value = v.metodo_pago;
+        document.getElementById('montoPagado').value = v.monto_pagado;
+        updateCartDisplay();
+        validarMontoPagado();
+    } catch (e) { console.error(e); sessionStorage.removeItem('editandoVentaId'); }
+}
+
 async function searchProducts(query) {
   if (!query || query.length < 2) {
     document.getElementById("searchResults").style.display = "none";
     return;
   }
-
   try {
     const response = await apiPost("productos/buscar", { q: query });
-
     const searchResults = document.getElementById("searchResults");
-
     if (response.success && response.data.length > 0) {
       let html = "";
-
       response.data.forEach(producto => {
         html += `
           <div class="search-result-item" data-producto='${JSON.stringify(producto)}'>
             <div class="d-flex justify-content-between">
               <div>
                 <strong>${producto.nombre}</strong><br>
-                <small class="text-muted">
-                  Código: ${producto.codigo} | Stock: ${producto.stock}
-                </small>
+                <small class="text-muted">Código: ${producto.codigo} | Stock: ${producto.stock}</small>
               </div>
               <div class="text-end">
-                <strong class="text-success">
-                  $${parseFloat(producto.precio_venta).toFixed(2)}
-                </strong>
+                <strong class="text-success">$${parseFloat(producto.precio_venta).toFixed(2)}</strong>
               </div>
             </div>
           </div>
         `;
       });
-
       searchResults.innerHTML = html;
       searchResults.style.display = "block";
-
       document.querySelectorAll(".search-result-item").forEach(item => {
         item.addEventListener("click", function () {
           const producto = JSON.parse(this.dataset.producto);
@@ -182,35 +189,22 @@ async function searchProducts(query) {
           document.getElementById("searchProduct").value = "";
         });
       });
-
     } else {
-      searchResults.innerHTML =
-        '<div class="p-3 text-muted text-center">No se encontraron productos</div>';
+      searchResults.innerHTML = '<div class="p-3 text-muted text-center">No se encontraron productos</div>';
       searchResults.style.display = "block";
     }
-
-  } catch (error) {
-    console.error("Error buscando productos:", error);
-  }
+  } catch (error) { console.error("Error buscando productos:", error); }
 }
 
-
 function addToCart(producto) {
-    // Verificar si el producto ya está en el carrito
-const productId = parseInt(producto.id);
-const existingItem = cart.find(item => item.id === productId);
-
-    
+    const productId = parseInt(producto.id);
+    const existingItem = cart.find(item => item.id === productId);
     if (existingItem) {
         if (existingItem.cantidad < producto.stock) {
             existingItem.cantidad++;
             existingItem.subtotal = existingItem.cantidad * existingItem.precio_venta;
         } else {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Stock insuficiente',
-                text: `Solo hay ${producto.stock} unidades disponibles`
-            });
+            Swal.fire({ icon: 'warning', title: 'Stock insuficiente', text: `Solo hay ${producto.stock} unidades disponibles` });
             return;
         }
     } else {
@@ -225,37 +219,26 @@ const existingItem = cart.find(item => item.id === productId);
                 subtotal: parseFloat(producto.precio_venta)
             });
         } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Sin stock',
-                text: 'Este producto no tiene stock disponible'
-            });
+            Swal.fire({ icon: 'error', title: 'Sin stock', text: 'Este producto no tiene stock disponible' });
             return;
         }
     }
-    
     updateCartDisplay();
 }
 
 function updateCartDisplay() {
     const cartContainer = document.getElementById('cartItems');
-    
     if (cart.length === 0) {
         cartContainer.innerHTML = '<p class="text-center text-muted">No hay productos en el carrito</p>';
         updateCartSummary();
         return;
     }
-    
     let html = '<div class="table-responsive"><table class="table table-sm">';
     html += '<thead><tr><th>Producto</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th><th></th></tr></thead><tbody>';
-    
     cart.forEach((item, index) => {
         html += `
             <tr>
-                <td>
-                    <strong>${item.nombre}</strong><br>
-                    <small class="text-muted">${item.codigo}</small>
-                </td>
+                <td><strong>${item.nombre}</strong><br><small class="text-muted">${item.codigo}</small></td>
                 <td>$${item.precio_venta.toFixed(2)}</td>
                 <td>
                     <div class="input-group input-group-sm" style="width: 120px;">
@@ -266,40 +249,23 @@ function updateCartDisplay() {
                     </div>
                 </td>
                 <td><strong>$${item.subtotal.toFixed(2)}</strong></td>
-                <td>
-                    <button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
+                <td><button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})"><i class="bi bi-trash"></i></button></td>
             </tr>
         `;
     });
-    
     html += '</tbody></table></div>';
     cartContainer.innerHTML = html;
-    
     updateCartSummary();
 }
 
 function updateQuantity(index, change) {
     const item = cart[index];
     const newQuantity = item.cantidad + change;
-    
-    if (newQuantity < 1) {
-        removeFromCart(index);
-        return;
-    }
-    
+    if (newQuantity < 1) { removeFromCart(index); return; }
     if (newQuantity > item.stock) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Stock insuficiente',
-            text: `Solo hay ${item.stock} unidades disponibles`,
-            timer: 2000
-        });
+        Swal.fire({ icon: 'warning', title: 'Stock insuficiente', text: `Solo hay ${item.stock} unidades disponibles`, timer: 2000 });
         return;
     }
-    
     item.cantidad = newQuantity;
     item.subtotal = item.cantidad * item.precio_venta;
     updateCartDisplay();
@@ -308,23 +274,12 @@ function updateQuantity(index, change) {
 function setQuantity(index, value) {
     const quantity = parseInt(value);
     const item = cart[index];
-    
-    if (isNaN(quantity) || quantity < 1) {
-        updateCartDisplay();
-        return;
-    }
-    
+    if (isNaN(quantity) || quantity < 1) { updateCartDisplay(); return; }
     if (quantity > item.stock) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Stock insuficiente',
-            text: `Solo hay ${item.stock} unidades disponibles`,
-            timer: 2000
-        });
+        Swal.fire({ icon: 'warning', title: 'Stock insuficiente', text: `Solo hay ${item.stock} unidades disponibles`, timer: 2000 });
         updateCartDisplay();
         return;
     }
-    
     item.cantidad = quantity;
     item.subtotal = item.cantidad * item.precio_venta;
     updateCartDisplay();
@@ -339,7 +294,6 @@ function updateCartSummary() {
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const descuento = parseFloat(document.getElementById('descuento')?.value || 0);
     const total = Math.max(0, subtotal - descuento);
-    
     if (document.getElementById('subtotalAmount')) {
         document.getElementById('subtotalAmount').textContent = '$' + subtotal.toFixed(2);
         document.getElementById('totalAmount').textContent = '$' + total.toFixed(2);
@@ -349,57 +303,33 @@ function updateCartSummary() {
 async function loadClientesSelect() {
     try {
         const data = await apiPost('clientes/listar');
-        
         const select = document.getElementById('selectCliente');
         let html = '<option value="">Cliente General</option>';
-        
-            data.forEach(cliente => {
-                html += `<option value="${cliente.id}">${cliente.nombre}</option>`;
-            });
-        
+        data.forEach(cliente => { html += `<option value="${cliente.id}">${cliente.nombre}</option>`; });
         select.innerHTML = html;
-    } catch (error) {
-        console.error('Error cargando clientes:', error);
-    }
+    } catch (error) { console.error('Error cargando clientes:', error); }
 }
- let procesandoVenta = false;
 
 function validarMontoPagado() {
-    const total = parseFloat(document.getElementById('totalAmount').textContent.replace('$', ''));
-    const montoPagado = parseFloat(document.getElementById('montoPagado').value) || 0;
-    const metodoPago = document.getElementById('metodoPago').value;
+    const totalText = document.getElementById('totalAmount')?.textContent || "$0.00";
+    const total = parseFloat(totalText.replace('$', ''));
+    const montoPagado = parseFloat(document.getElementById('montoPagado')?.value) || 0;
+    const metodoPago = document.getElementById('metodoPago')?.value;
     const btnCompletar = document.getElementById('btnCompletarVenta');
     const saldoContainer = document.getElementById('saldoContainer');
     const saldoAmount = document.getElementById('saldoAmount');
-    
-    // Calcular saldo
     const saldo = Math.max(0, total - montoPagado);
-    
-    if (saldo > 0) {
-        saldoContainer.style.display = 'block';
-        saldoAmount.textContent = '$' + saldo.toFixed(2);
-    } else {
-        saldoContainer.style.display = 'none';
-    }
-    
-    if (montoPagado >= 0 && metodoPago) {
-        btnCompletar.disabled = false;
-    } else {
-        btnCompletar.disabled = true;
-    }
+    if (saldoContainer) saldoContainer.style.display = saldo > 0 ? 'block' : 'none';
+    if (saldoAmount) saldoAmount.textContent = '$' + saldo.toFixed(2);
+    if (btnCompletar) btnCompletar.disabled = !(montoPagado >= 0 && metodoPago);
 }
 
 async function completarVenta() {
-
   if (!cart || cart.length === 0) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Carrito vacío',
-      text: 'Agrega productos antes de completar la venta'
-    });
+    Swal.fire({ icon: 'warning', title: 'Carrito vacío' });
     return;
   }
-
+  const editId = sessionStorage.getItem('editandoVentaId');
   const clienteId = document.getElementById('selectCliente').value || null;
   const descuento = parseFloat(document.getElementById('descuento').value || 0);
   const metodoPago = document.getElementById('metodoPago').value;
@@ -407,24 +337,10 @@ async function completarVenta() {
   const total = parseFloat(document.getElementById('totalAmount').textContent.replace('$', ''));
   const saldo = Math.max(0, total - montoPagado);
 
-  if (!metodoPago) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Método de pago requerido'
-    });
-    return;
-  }
-
-  if (montoPagado < 0) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Monto pagado inválido',
-      text: 'Ingrese un monto pagado válido'
-    });
-    return;
-  }
+  if (!metodoPago) { Swal.fire({ icon: 'warning', title: 'Método de pago requerido' }); return; }
 
   const venta = {
+    id: editId,
     cliente_id: clienteId,
     productos: cart,
     descuento,
@@ -434,31 +350,24 @@ async function completarVenta() {
   };
 
   try {
-    const response = await apiPost("ventas/nuevo", venta);
-
+    const response = await apiPost(editId ? "ventas/editar" : "ventas/nuevo", venta);
     await Swal.fire({
       icon: 'success',
-      title: '¡Venta completada!',
-      html: `
-        <p>Folio: <strong>${response.folio}</strong></p>
-        <p>Total: <strong>$${parseFloat(response.total).toFixed(2)}</strong></p>
-        <p>Monto pagado: <strong>$${montoPagado.toFixed(2)}</strong></p>
-        ${saldo > 0 ? `<p>Saldo pendiente: <strong class="text-warning">$${saldo.toFixed(2)}</strong></p>` : ''}
-      `,
+      title: editId ? '¡Venta actualizada!' : '¡Venta completada!',
+      html: `<p>Folio: <strong>${response.folio}</strong></p><p>Total: <strong>$${parseFloat(response.total).toFixed(2)}</strong></p>`,
       confirmButtonText: 'Aceptar'
     });
-
+    sessionStorage.removeItem('editandoVentaId');
     cart = [];
     updateCartDisplay();
-    document.getElementById('searchProduct').value = '';
-    document.getElementById('descuento').value = '0';
-    document.getElementById('metodoPago').value = '';
-    document.getElementById('montoPagado').value = '0';
-    document.getElementById('saldoContainer').style.display = 'none';
-    document.getElementById('btnCompletarVenta').disabled = true;
-
-  } catch (error) {
-    // El error ya lo manejó apiPost, aquí solo podrías limpiar estados específicos si fuera necesario.
-    console.error("Error completando venta:", error);
-  }
+    if (editId) document.querySelector('[data-page="reportes"]').click();
+    else {
+        document.getElementById('searchProduct').value = '';
+        document.getElementById('descuento').value = '0';
+        document.getElementById('metodoPago').value = '';
+        document.getElementById('montoPagado').value = '0';
+        if (document.getElementById('saldoContainer')) document.getElementById('saldoContainer').style.display = 'none';
+        document.getElementById('btnCompletarVenta').disabled = true;
+    }
+  } catch (error) { console.error("Error procesando venta:", error); }
 }
