@@ -42,6 +42,11 @@ async function loadCreditos() {
                                             <span class="small">Deuda Total: <strong id="deudaTotalLabel" class="text-danger">$0.00</strong></span>
                                             <span class="badge bg-primary" id="cuentasPendientesLabel">0 cuentas</span>
                                         </div>
+                                        <div class="mt-2 d-grid">
+                                            <button class="btn btn-sm btn-outline-dark" onclick="imprimirHistorialCredito()">
+                                                <i class="bi bi-printer"></i> Imprimir Estado de Cuenta
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -148,6 +153,10 @@ function filterCreditos() {
 }
 
 function showAbonarModal(ventaId, saldo) {
+    // Buscar el nombre del cliente en los datos locales
+    const venta = creditosData.find(v => v.id == ventaId);
+    const clienteNombre = venta ? venta.cliente_nombre : "Cliente";
+
     Swal.fire({
         title: 'Registrar Abono Individual',
         html: `
@@ -184,12 +193,18 @@ function showAbonarModal(ventaId, saldo) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await apiPost('ventas/abonar', { 
+                const res = await apiPost('ventas/abonar', { 
                     venta_id: ventaId, 
                     monto: result.value.monto, 
-                    metodo_pago: result.value.metodo_pago 
+                    metodo_pago: result.value.metodo_pago,
+                    cliente_nombre: clienteNombre // Pasamos el nombre para el ticket
                 }, { successMsg: "Abono registrado con éxito" });
-                fetchCreditos();
+                
+                if (res.success) {
+                    const print = await confirmAction("¿Imprimir Recibo?", "Abono registrado correctamente. ¿Deseas imprimir el comprobante?");
+                    if (print) imprimirTicketAbono(res.data);
+                    fetchCreditos();
+                }
             } catch (e) { console.error("Error al abonar:", e); }
         }
     });
@@ -314,11 +329,170 @@ async function procesarAbonoMasivo() {
     const res = await apiPost('ventas/abonarMasivo', {
         cliente_id: clienteId,
         monto: monto,
-        metodo_pago: metodo
+        metodo_pago: metodo,
+        cliente_nombre: nombre // Enviamos el nombre para que el ticket lo tenga
     }, { successMsg: "Abono masivo procesado correctamente" });
     
     if (res.success) {
+        const print = await confirmAction("¿Imprimir Recibo?", "Abono masivo procesado. ¿Deseas imprimir el comprobante?");
+        if (print) {
+            // USAR LOS DATOS REALES DE LA RESPUESTA (que contienen el desglose de cuentas)
+            imprimirTicketAbono(res.data);
+        }
         limpiarFormMasivo();
         fetchCreditos();
     }
+}
+
+function imprimirTicketAbono(data) {
+    const { jsPDF } = window.jspdf;
+    
+    // Altura dinámica: 100mm base + 8mm por cada cuenta pagada si es masivo
+    const extraHeight = (data.cuentas ? data.cuentas.length * 8 : 0);
+    const doc = new jsPDF({
+        unit: 'mm',
+        format: [80, 100 + extraHeight]
+    });
+
+    doc.setFont("courier", "bold");
+    doc.setFontSize(12);
+    doc.text("RECIBO DE ABONO", 40, 10, { align: "center" });
+    
+    doc.setFont("courier", "normal");
+    doc.setFontSize(9);
+    doc.text("--------------------------------", 40, 15, { align: "center" });
+    
+    let y = 22;
+    doc.text(`FECHA:   ${new Date().toLocaleString()}`, 5, y); y += 6;
+    doc.text(`CLIENTE: ${data.cliente.substring(0, 24)}`, 5, y); y += 6;
+    
+    if (data.cuentas) {
+        // Es un abono masivo, listamos las cuentas
+        doc.setFont("courier", "bold");
+        doc.text("DESGLOSE DE PAGOS:", 5, y); y += 6;
+        doc.setFont("courier", "normal");
+        
+        data.cuentas.forEach(c => {
+            doc.text(`${c.folio.padEnd(15)} ${formatCurrency(c.abono).padStart(12)}`, 5, y);
+            y += 5;
+            doc.setFontSize(8);
+            doc.text(`   Saldo rest: ${formatCurrency(c.saldo_final)}`, 5, y);
+            y += 5;
+            doc.setFontSize(9);
+        });
+        y += 2;
+    } else {
+        // Es un abono individual
+        doc.text(`VENTA:   ${data.folio}`, 5, y); y += 6;
+    }
+
+    doc.text(`METODO:  ${data.metodo.toUpperCase()}`, 5, y); y += 10;
+    
+    doc.setFontSize(14);
+    doc.setFont("courier", "bold");
+    doc.text(`TOTAL ABONADO: ${formatCurrency(data.monto)}`, 40, y, { align: "center" }); y += 10;
+    
+    if (data.saldo_restante !== undefined) {
+        doc.setFontSize(10);
+        doc.text(`SALDO VENTA: ${formatCurrency(data.saldo_restante)}`, 40, y, { align: "center" }); y += 10;
+    }
+    
+    doc.setFontSize(9);
+    doc.setFont("courier", "normal");
+    doc.text("--------------------------------", 40, y, { align: "center" }); y += 5;
+    doc.text("¡Gracias por su pago!", 40, y, { align: "center" });
+
+    // Abrir en nueva ventana para imprimir
+    window.open(doc.output('bloburl'), '_blank');
+}
+
+async function imprimirHistorialCredito() {
+    const clienteId = document.getElementById('masivoClienteId').value;
+    const clienteNombre = document.getElementById('searchClienteMasivo').value;
+
+    if (!clienteId) {
+        return notify("Error", "Seleccione un cliente para imprimir su historial", "error");
+    }
+
+    // Obtenemos los datos frescos con detalles desde la API
+    const res = await apiPost('ventas/full', { 
+        cliente_id: clienteId, 
+        estado: 'pendiente', 
+        conDetalles: true,
+        fechaInicio: '2000-01-01', // Rango amplio para traer todo lo pendiente
+        fechaFin: new Date().toISOString().split('T')[0]
+    });
+
+    if (!res.success || !res.data || res.data.length === 0) {
+        return notify("Aviso", "El cliente no tiene deudas pendientes", "info");
+    }
+
+    const deudas = res.data;
+    const totalDeuda = deudas.reduce((sum, v) => sum + parseFloat(v.saldo), 0);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Título y Encabezado
+    doc.setFontSize(18);
+    doc.text("Estado de Cuenta Detallado", 105, 15, { align: "center" });
+    
+    doc.setFontSize(11);
+    doc.text(`Cliente: ${clienteNombre}`, 14, 25);
+    doc.text(`Fecha Reporte: ${new Date().toLocaleString()}`, 14, 31);
+    doc.setFont("helvetica", "bold");
+    doc.text(`TOTAL ADEUDADO: ${formatCurrency(totalDeuda)}`, 14, 38);
+    doc.setFont("helvetica", "normal");
+
+    const tableBody = [];
+    deudas.forEach(v => {
+        // Fila principal de la venta
+        tableBody.push([
+            { content: v.folio, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+            { content: formatDateTime(v.fecha_venta), styles: { fillColor: [240, 240, 240] } },
+            { content: formatCurrency(v.total), styles: { fillColor: [240, 240, 240] } },
+            { content: formatCurrency(v.monto_pagado), styles: { fillColor: [240, 240, 240] } },
+            { content: formatCurrency(v.saldo), styles: { fontStyle: 'bold', textColor: [200, 0, 0], fillColor: [240, 240, 240] } }
+        ]);
+
+        // Filas de productos (detalles)
+        if (v.detalles && v.detalles.length > 0) {
+            const listaProductos = v.detalles.map(d => `- ${d.producto_nombre} (x${d.cantidad})`).join('\n');
+            tableBody.push([
+                { 
+                    content: "Productos vendidos:\n" + listaProductos, 
+                    colSpan: 5, 
+                    styles: { fontSize: 9, textColor: [100, 100, 100], cellPadding: 3 } 
+                }
+            ]);
+        }
+    });
+
+    doc.autoTable({
+        startY: 45,
+        head: [['Folio', 'Fecha', 'Total Venta', 'Pagado', 'Saldo Pendiente']],
+        body: tableBody,
+        theme: 'plain',
+        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+        columnStyles: {
+            0: { cellWidth: 30 },
+            1: { cellWidth: 45 },
+            2: { cellWidth: 35 },
+            3: { cellWidth: 35 },
+            4: { cellWidth: 35 }
+        },
+        didParseCell: function(data) {
+            // Añadir bordes inferiores a las secciones de cada venta para separar
+            if (data.row.index % 2 !== 0) {
+                data.cell.styles.borderBottom = { width: 0.5, color: [200, 200, 200] };
+            }
+        }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.text(`Saldo Total Pendiente: ${formatCurrency(totalDeuda)}`, 196, finalY, { align: "right" });
+
+    // Guardar o Abrir en nueva ventana
+    window.open(doc.output('bloburl'), '_blank');
 }

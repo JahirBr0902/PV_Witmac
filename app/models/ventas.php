@@ -57,6 +57,11 @@ class Ventas extends BaseModel {
             $params[] = $filtros['estado'];
         }
 
+        if (!empty($filtros['cliente_id'])) {
+            $sql .= " AND v.cliente_id = ?";
+            $params[] = $filtros['cliente_id'];
+        }
+
         $sql .= " ORDER BY v.fecha_venta DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -320,7 +325,7 @@ class Ventas extends BaseModel {
         }
 
         // Obtener todas las ventas pendientes del cliente, ordenadas por fecha (FIFO)
-        $sql = "SELECT id, saldo FROM {$this->table} 
+        $sql = "SELECT id, folio, saldo, monto_pagado FROM {$this->table} 
                 WHERE cliente_id = ? AND estado = 'pendiente' AND saldo > 0 
                 ORDER BY fecha_venta ASC";
         $stmt = $this->db->prepare($sql);
@@ -332,6 +337,7 @@ class Ventas extends BaseModel {
         }
 
         $montoRestante = (float)$montoTotal;
+        $detallesAbono = [];
         $this->db->beginTransaction();
 
         try {
@@ -341,12 +347,7 @@ class Ventas extends BaseModel {
                 $saldoVenta = (float)$v['saldo'];
                 $abonoAVenta = min($montoRestante, $saldoVenta);
 
-                // Reutilizamos la lógica interna de actualización para cada venta
-                $nuevoPagado = $this->db->prepare("SELECT monto_pagado FROM ventas WHERE id = ?");
-                $nuevoPagado->execute([$v['id']]);
-                $pagadoActual = (float)$nuevoPagado->fetchColumn();
-
-                $nPagado = $pagadoActual + $abonoAVenta;
+                $nPagado = (float)$v['monto_pagado'] + $abonoAVenta;
                 $nSaldo = $saldoVenta - $abonoAVenta;
                 $nEstado = $nSaldo <= 0 ? 'completada' : 'pendiente';
 
@@ -360,11 +361,17 @@ class Ventas extends BaseModel {
                 $stmtA = $this->db->prepare("INSERT INTO abonos (venta_id, caja_id, usuario_id, monto, metodo_pago) VALUES (?,?,?,?,?)");
                 $stmtA->execute([$v['id'], $caja['id'], $_SESSION['usuario_id'], $abonoAVenta, $metodoPago]);
 
+                $detallesAbono[] = [
+                    'folio' => $v['folio'],
+                    'abono' => $abonoAVenta,
+                    'saldo_final' => $nSaldo
+                ];
+
                 $montoRestante -= $abonoAVenta;
             }
 
             $this->db->commit();
-            return true;
+            return $detallesAbono;
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;

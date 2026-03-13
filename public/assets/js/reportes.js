@@ -198,12 +198,25 @@ async function exportarExcel() {
   const wb = XLSX.utils.book_new();
   const dataRows = [];
   
-  dataRows.push(["Folio", "Cliente", "Vendedor", "Total", "Pagado", "Saldo", "Método", "Fecha", "Estado"]);
+  // Encabezados claros
+  dataRows.push(["Folio", "Cliente", "Vendedor", "Total Venta", "Monto Pagado", "Saldo Pendiente", "Método", "Fecha", "Estado"]);
 
   res.data.forEach(v => {
-    dataRows.push([v.folio, v.cliente_nombre, v.vendedor_nombre, Number(v.total), Number(v.monto_pagado), Number(v.saldo), v.metodo_pago, v.fecha_venta, v.estado]);
+    dataRows.push([
+        v.folio, 
+        v.cliente_nombre, 
+        v.vendedor_nombre, 
+        Number(v.total), 
+        Number(v.monto_pagado), 
+        Number(v.saldo), 
+        v.metodo_pago, 
+        v.fecha_venta, 
+        v.estado
+    ]);
+    
     if (conDetalles && v.detalles) {
         v.detalles.forEach(d => {
+            // Fila de detalle (dejamos vacíos los campos de totales para que no se sumen erróneamente)
             dataRows.push(["", "   ↳ " + d.producto_nombre, "", "", "", "", d.cantidad, Number(d.precio_unitario), Number(d.subtotal)]);
         });
     }
@@ -236,28 +249,56 @@ async function exportarPDF() {
   if (!res.success) return;
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF('landscape'); // Cambiamos a horizontal para que quepan más columnas
   
   doc.setFontSize(16);
-  doc.text("Reporte de Ventas " + (conDetalles ? "(Detallado)" : "(Resumen)"), 105, 15, { align: "center" });
+  doc.text("Reporte de Ventas " + (conDetalles ? "(Detallado)" : "(Resumen)"), 148, 15, { align: "center" });
   doc.setFontSize(10);
-  doc.text(`Periodo: ${filtros.fechaInicio} a ${filtros.fechaFin}`, 105, 22, { align: "center" });
+  doc.text(`Periodo: ${filtros.fechaInicio} a ${filtros.fechaFin}`, 148, 22, { align: "center" });
 
   const tableBody = [];
   res.data.forEach(v => {
-  tableBody.push([v.folio, v.cliente_nombre, formatCurrency(v.total), formatDateTime(v.fecha_venta), v.estado]);
-  if (conDetalles && v.detalles) {
-      v.detalles.forEach(d => {
-          tableBody.push(["", { content: `> ${d.producto_nombre} (x${d.cantidad})`, styles: { fontStyle: 'italic', textColor: [80, 80, 80] } }, "", formatCurrency(d.subtotal), ""]);
-      });
-  }
+    // Fila principal con Pagado y Saldo
+    tableBody.push([
+        v.folio, 
+        v.cliente_nombre, 
+        formatCurrency(v.total), 
+        formatCurrency(v.monto_pagado), 
+        formatCurrency(v.saldo), 
+        formatDateTime(v.fecha_venta), 
+        v.estado.toUpperCase()
+    ]);
+    
+    if (conDetalles && v.detalles) {
+        v.detalles.forEach(d => {
+            tableBody.push([
+                "", 
+                { content: `> ${d.producto_nombre} (x${d.cantidad})`, styles: { fontStyle: 'italic', textColor: [80, 80, 80] } }, 
+                "", 
+                "", 
+                "", 
+                formatCurrency(d.subtotal), 
+                ""
+            ]);
+        });
+    }
   });
+
   doc.autoTable({
     startY: 30,
-    head: [['Folio', 'Cliente / Productos', 'Total', 'Fecha', 'Estado']],
+    head: [['Folio', 'Cliente / Productos', 'Total', 'Pagado', 'Saldo', 'Fecha', 'Estado']],
     body: tableBody,
     theme: conDetalles ? 'plain' : 'striped',
-    headStyles: { fillColor: [41, 128, 185] },
+    headStyles: { fillColor: [41, 128, 185], fontSize: 9 },
+    columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 40 },
+        6: { cellWidth: 25 }
+    },
     didParseCell: function(data) {
         if (data.row.cells[0].text === "" && conDetalles) {
             data.cell.styles.fillColor = [250, 250, 250];

@@ -42,7 +42,19 @@ class ventasController {
         validate($body, ['venta_id', 'monto', 'metodo_pago']);
         try {
             $this->model->registrarAbono($body['venta_id'], $body['monto'], $body['metodo_pago']);
-            response(['success' => true, 'message' => 'Abono registrado']);
+            // Obtener datos de la venta para el ticket
+            $venta = $this->model->getById($body['venta_id']);
+            response([
+                'success' => true, 
+                'message' => 'Abono registrado',
+                'data' => [
+                    'folio' => $venta['folio'],
+                    'monto' => $body['monto'],
+                    'metodo' => $body['metodo_pago'],
+                    'saldo_restante' => $venta['saldo'],
+                    'cliente' => $body['cliente_nombre'] ?? 'Cliente General'
+                ]
+            ]);
         } catch (Exception $e) { error($e->getMessage()); }
     }
 
@@ -50,16 +62,27 @@ class ventasController {
         $body = getBody();
         validate($body, ['cliente_id', 'monto', 'metodo_pago']);
         try {
-            $this->model->registrarAbonoMasivo($body['cliente_id'], $body['monto'], $body['metodo_pago']);
-            response(['success' => true, 'message' => 'Abono masivo procesado correctamente']);
+            $detalles = $this->model->registrarAbonoMasivo($body['cliente_id'], $body['monto'], $body['metodo_pago']);
+            response([
+                'success' => true, 
+                'message' => 'Abono masivo procesado correctamente',
+                'data' => [
+                    'monto' => $body['monto'],
+                    'metodo' => $body['metodo_pago'],
+                    'cliente' => $body['cliente_nombre'] ?? 'Cliente General',
+                    'cuentas' => $detalles // Aquí van los folios y montos individuales
+                ]
+            ]);
         } catch (Exception $e) { error($e->getMessage()); }
     }
 
     public function getFullVentas() {
         $body = getBody();
-        validate($body, ['fechaInicio', 'fechaFin']);
         try {
-            // Ahora respeta lo que mande el frontend (si no viene, por defecto false)
+            // Valores por defecto si no vienen
+            if (!isset($body['fechaInicio'])) $body['fechaInicio'] = '2000-01-01';
+            if (!isset($body['fechaFin'])) $body['fechaFin'] = date('Y-m-d');
+            
             $body['conDetalles'] = isset($body['conDetalles']) ? (bool)$body['conDetalles'] : false;
             $data = $this->model->getReporte($body);
             response(['success' => true, 'data' => $data]);
