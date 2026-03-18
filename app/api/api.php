@@ -119,6 +119,7 @@ try {
             $ctrl = new dashboardController();
             switch ($action) {
                 case 'resumen': $ctrl->resumen(); break;
+                case 'estadisticas': $ctrl->estadisticas(); break;
                 default: error('Acción no encontrada'); break;
             }
             break;

@@ -59,6 +59,8 @@ checkAuth();
                             <i class="bi bi-gear"></i> Administración
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="#" data-page="estadisticas"><i class="bi bi-bar-chart-steps me-2"></i> Estadísticas</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" data-page="productos"><i class="bi bi-box me-2"></i> Productos</a></li>
                             <li><a class="dropdown-item" href="#" data-page="inventario"><i class="bi bi-boxes me-2"></i> Inventario</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -115,6 +117,7 @@ checkAuth();
     <script src="assets/js/reportes.js"></script>
     <script src="assets/js/creditos.js"></script>
     <script src="assets/js/configuracion.js"></script>
+    <script src="assets/js/estadisticas.js"></script>
     <script src="assets/js/main.js"></script>
 </body>
 </html>

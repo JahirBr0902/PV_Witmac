@@ -120,5 +120,8 @@ function loadPage(page) {
     case "configuracion":
       loadConfiguracion();
       break;
+    case "estadisticas":
+      loadEstadisticas();
+      break;
   }
 }
