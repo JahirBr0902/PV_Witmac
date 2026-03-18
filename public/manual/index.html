@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Uso - Punto de Venta</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #669fea;
+            --secondary: #4b88a2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --bg-light: #f8f9fa;
+            --sidebar-width: 300px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            color: #333;
+            scroll-behavior: smooth;
+        }
+
+        #sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.8);
+            margin: 5px 15px;
+            border-radius: 8px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+            text-decoration: none;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        #main-content {
+            margin-left: var(--sidebar-width);
+            padding: 40px;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 40px;
+            border: none;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 15px 25px;
+            font-weight: 600;
+        }
+
+        .section-body { padding: 25px; }
+
+        .interface-map {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .map-navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            height: 35px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 9px;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .map-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 160px;
+        }
+
+        .map-row { display: flex; gap: 12px; flex-grow: 1; }
+        
+        .highlight-box {
+            border: 2px solid var(--primary);
+            padding: 10px;
+            border-radius: 8px;
+            background: white;
+            font-size: 10px;
+            text-align: center;
+            color: #475569;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            text-transform: uppercase;
+        }
+
+        .loc-tag {
+            display: inline-block;
+            background: #334155;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-right: 5px;
+            font-weight: 600;
+        }
+
+        .alert-critical {
+            border-left: 6px solid var(--danger);
+            background: #fff1f2;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-hero {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            padding: 50px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 40px;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="sidebar">
+        <div class="p-4 text-center">
+            <h4 class="fw-bold"><i class="bi bi-shop-window me-2"></i>Punto de Venta</h4>
+            <p class="small opacity-75">Guía de Usuario General</p>
+        </div>
+        <div class="nav flex-column">
+            <a href="#inicio" class="nav-link active"><i class="bi bi-info-circle me-2"></i> Bienvenida</a>
+            <a href="#dashboard" class="nav-link"><i class="bi bi-house-door me-2"></i> Inicio (Dashboard)</a>
+            <a href="#apertura" class="nav-link text-warning fw-bold"><i class="bi bi-key me-2"></i> Apertura de Caja</a>
+            <a href="#ventas" class="nav-link"><i class="bi bi-cart me-2"></i> Ventas</a>
+            <a href="#clientes" class="nav-link"><i class="bi bi-people me-2"></i> Clientes</a>
+            <a href="#creditos" class="nav-link"><i class="bi bi-cash-stack me-2"></i> Créditos</a>
+            <a href="#reportes" class="nav-link"><i class="bi bi-graph-up me-2"></i> Reportes</a>
+            <div class="px-3 my-2"><hr class="opacity-25"></div>
+            <a href="#admin" class="nav-link"><i class="bi bi-shield-lock me-2"></i> Administración</a>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        
+        <!-- Bienvenida -->
+        <section id="inicio">
+            <div class="welcome-hero">
+                <i class="bi bi-journal-check text-primary mb-3" style="font-size: 3.5rem;"></i>
+                <h1 class="display-5 fw-bold text-dark">Bienvenido al manual de uso de Punto de Venta</h1>
+                <p class="lead text-muted mt-3">
+                    Aquí aprenderás a utilizar todas las herramientas de tu sistema para gestionar tu negocio de forma profesional, rápida y organizada.
+                </p>
+                <div class="row g-3 mt-4 justify-content-center">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-white shadow-sm rounded-3">
+                            <i class="bi bi-lightning-charge text-warning fs-3"></i>
+                            <h6 class="mt-2 fw-bold">Rápido</h6>
+                            <p class="small text-muted mb-0">Aprende a realizar cobros en segundos.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-white shadow-sm rounded-3">
+                            <i class="bi bi-shield-check text-success fs-3"></i>
+                            <h6 class="mt-2 fw-bold">Seguro</h6>
+                            <p class="small text-muted mb-0">Controla tus ingresos y cierres de caja.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-white shadow-sm rounded-3">
+                            <i class="bi bi-graph-up-arrow text-primary fs-3"></i>
+                            <h6 class="mt-2 fw-bold">Eficiente</h6>
+                            <p class="small text-muted mb-0">Analiza tus ventas con reportes reales.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard -->
+        <section id="dashboard">
+            <div class="section-card">
+                <div class="section-header">Pantalla de Inicio (Dashboard)</div>
+                <div class="section-body">
+                    <p>Es lo primero que ves al entrar. Muestra un resumen del estado de tu negocio en tiempo real.</p>
+                    
+                    <div class="interface-map">
+                        <div class="map-container">
+                            <div class="map-row" style="height: 50px;">
+                                <div class="highlight-box flex-fill" style="border-color: var(--primary);">EFECTIVO HOY</div>
+                                <div class="highlight-box flex-fill" style="border-color: var(--success);">TRANSFERENCIA</div>
+                                <div class="highlight-box flex-fill" style="border-color: var(--warning);">PENDIENTE</div>
+                                <div class="highlight-box flex-fill" style="border-color: var(--danger);">STOCK BAJO</div>
+                            </div>
+                            <div class="map-row">
+                                <div class="highlight-box flex-grow-1" style="width: 60%;">GRÁFICA DE VENTAS (7 DÍAS)</div>
+                                <div class="highlight-box" style="width: 35%;">ÚLTIMAS VENTAS</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong><span class="loc-tag">ARRIBA</span> Tarjetas de Resumen:</strong> 4 cuadros de colores con los montos totales del día y alertas de stock.</li>
+                        <li class="list-group-item"><strong><span class="loc-tag">ABAJO IZQUIERDA</span> Gráfica:</strong> Una línea de tiempo que muestra el rendimiento de la semana.</li>
+                        <li class="list-group-item"><strong><span class="loc-tag">ABAJO DERECHA</span> Historial Rápido:</strong> Las ventas más recientes con su folio y monto.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Apertura de Caja -->
+        <section id="apertura">
+            <div class="section-card">
+                <div class="section-header">1. Apertura de Caja (Inicio del Día)</div>
+                <div class="section-body">
+                    <div class="alert-critical">
+                        <h5 class="text-danger fw-bold"><i class="bi bi-exclamation-octagon"></i> PASO OBLIGATORIO</h5>
+                        <p class="mb-0">El sistema no permite realizar ventas si la caja no ha sido abierta. Esto garantiza que el dinero al final del día coincida perfectamente con lo que recibiste al iniciar.</p>
+                    </div>
+
+                    <h6>¿Cómo funciona el proceso?</h6>
+                    <ol class="mt-3">
+                        <li>Al iniciar sesión, verás en la <strong>Barra Superior</strong> un recuadro rojo que dice: <span class="badge bg-danger"><i class="bi bi-lock-fill"></i> Caja Cerrada</span>.</li>
+                        <li>Haz clic en ese recuadro para abrir la <strong>Ventana de Apertura</strong>.</li>
+                        <li><strong>Cuenta tu efectivo físico:</strong> Cuenta las monedas y billetes que tienes en tu cajón de dinero.</li>
+                        <li>Ingresa ese monto exacto en el sistema y presiona "Abrir Caja".</li>
+                    </ol>
+
+                    <div class="interface-map">
+                        <div class="map-container d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                            <div class="highlight-box shadow-lg" style="width: 350px; border-style: solid; background: white;">
+                                <div class="p-3">
+                                    <h6 class="fw-bold text-primary">VENTANA EMERGENTE: ABRIR CAJA</h6>
+                                    <hr>
+                                    <p class="small text-muted">Ingrese el monto inicial en efectivo:</p>
+                                    <div class="border p-2 mb-3 bg-light rounded text-start">$ 0.00</div>
+                                    <div class="d-flex gap-2">
+                                        <div class="highlight-box flex-fill text-white bg-secondary" style="border:none">CANCELAR</div>
+                                        <div class="highlight-box flex-fill text-white bg-primary" style="border:none">ABRIR CAJA</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Control de Caja -->
+        <section id="control-caja">
+            <div class="section-card">
+                <div class="section-header">2. Seguimiento y Acumulado durante el Turno</div>
+                <div class="section-body">
+                    <p>Una vez abierta la caja, el recuadro superior cambiará a verde: <span class="badge bg-success"><i class="bi bi-cash-coin"></i> Efectivo en Caja: $...</span>.</p>
+                    
+                    <h6>¿Qué se suma automáticamente?</h6>
+                    <p>El sistema lleva la cuenta en tiempo real sumando los siguientes conceptos:</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 border-start border-4 border-success bg-light rounded shadow-sm">
+                                <h6 class="fw-bold text-success mb-1">Entradas (+)</h6>
+                                <ul class="small mb-0 ps-3">
+                                    <li>Monto inicial (fondo).</li>
+                                    <li>Ventas cobradas en <strong>efectivo</strong>.</li>
+                                    <li>Abonos de créditos en efectivo.</li>
+                                    <li>Entradas manuales (ej: cambio extra).</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border-start border-4 border-danger bg-light rounded shadow-sm">
+                                <h6 class="fw-bold text-danger mb-1">Salidas (-)</h6>
+                                <ul class="small mb-0 ps-3">
+                                    <li>Retiros de efectivo (ej: pago a proveedor).</li>
+                                    <li>Ventas canceladas.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-3 small text-muted"><i class="bi bi-info-circle"></i> <strong>Nota:</strong> Los pagos con Transferencia se registran por separado y no afectan el conteo del "Efectivo en Caja" (dinero físico).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Corte de Caja -->
+        <section id="cierre">
+            <div class="section-card">
+                <div class="section-header">3. Cierre de Caja (Corte de Turno)</div>
+                <div class="section-body">
+                    <p>Al finalizar el día o tu turno, debes realizar el **Corte de Caja** para validar que el dinero físico coincida con el sistema.</p>
+                    
+                    <h6>Pasos para el Cierre:</h6>
+                    <ol>
+                        <li>Haz clic en el indicador verde de <strong>Efectivo en Caja</strong> de la barra superior.</li>
+                        <li>Se abrirá un resumen detallado. Presiona el botón rojo: <strong>"Hacer Corte de Caja"</strong>.</li>
+                        <li><strong>El Sistema te pedirá el Monto Real:</strong> Cuenta físicamente todo el dinero que tienes en el cajón en ese momento e ingresa la cantidad.</li>
+                    </ol>
+
+                    <div class="bg-light p-3 rounded border-start border-5 border-info mt-3">
+                        <h6 class="fw-bold text-info"><i class="bi bi-calculator"></i> Cálculo de Diferencias:</h6>
+                        <p class="small mb-0">Al ingresar tu dinero real, el sistema comparará con lo que él "esperaba" tener. Te avisará inmediatamente si:</p>
+                        <ul class="small mt-2 mb-0">
+                            <li><strong>Caja Cuadrada:</strong> El dinero físico es idéntico al del sistema.</li>
+                            <li><strong>Sobrante:</strong> Tienes más dinero físico del que el sistema registró.</li>
+                            <li><strong>Faltante:</strong> Tienes menos dinero físico del que deberías.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ventas -->
+        <section id="ventas">
+            <div class="section-card">
+                <div class="section-header">Módulo de Ventas (Paso a Paso)</div>
+                <div class="section-body">
+                    <p>El proceso de venta es ágil y está diseñado para evitar errores en el cobro. Sigue estos 4 pasos clave:</p>
+                    
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><span class="badge bg-primary me-2">1</span> Buscar y Agregar</h6>
+                                <p class="small text-muted mb-0">Usa el buscador superior. Puedes escribir el nombre del producto o usar un <strong>lector de código de barras</strong>. Al encontrarlo, se sumará automáticamente al carrito de la izquierda.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><span class="badge bg-primary me-2">2</span> Seleccionar Cliente</h6>
+                                <p class="small text-muted mb-0">En el panel derecho, selecciona al cliente de la lista. Esto permite llevar un historial de compras y habilitar la opción de <strong>Crédito</strong> si el pago no es completo.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><span class="badge bg-primary me-2">3</span> Pago y Cambio</h6>
+                                <p class="small text-muted mb-0">Elige el método (Efectivo/Transferencia) e ingresa el monto recibido. El sistema calculará el <strong>Cambio</strong> a devolver o el saldo pendiente.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><span class="badge bg-primary me-2">4</span> Finalizar y Ticket</h6>
+                                <p class="small text-muted mb-0">Al presionar "Completar Venta", aparecerá una <strong>Ventana de Confirmación</strong> con el folio y total. Desde ahí podrás imprimir el ticket físico.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="interface-map">
+                        <div class="map-container">
+                            <div class="highlight-box mb-2" style="height: 40px; border-color: var(--primary);">
+                                <i class="bi bi-search me-2"></i> BUSCADOR (Escribe aquí o escanea código)
+                            </div>
+                            <div class="map-row">
+                                <div class="highlight-box" style="width: 65%;">
+                                    LISTA DE PRODUCTOS AGREGADOS
+                                </div>
+                                <div class="map-box" style="width: 35%; border-color: var(--success);">
+                                    <div class="highlight-box mb-2">CLIENTE SELECCIONADO</div>
+                                    <div class="highlight-box mb-2" style="border-style: solid; border-color: var(--success); color: var(--success); font-size: 14px;">
+                                        TOTAL: $ 0.00
+                                    </div>
+                                    <div class="highlight-box mb-2" style="background: #f0fdf4; border-color: var(--success); color: var(--success);">
+                                        CAMBIO: $ 0.00
+                                    </div>
+                                    <div class="highlight-box text-white bg-success" style="border:none">COMPLETAR VENTA</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-center">
+                        <div class="highlight-box shadow-lg" style="width: 300px; border-style: solid; border-color: var(--success); background: white;">
+                            <div class="p-3">
+                                <i class="bi bi-check-circle text-success fs-2"></i>
+                                <h6 class="fw-bold mt-2">¡Venta completada!</h6>
+                                <p class="small text-muted mb-1">Folio: <strong>V-0001</strong></p>
+                                <p class="small text-muted">Total: <strong>$ 150.00</strong></p>
+                                <div class="d-grid gap-2 mt-3">
+                                    <div class="highlight-box text-white bg-primary py-2" style="border:none; cursor:default">
+                                        <i class="bi bi-printer me-2"></i> IMPRIMIR TICKET
+                                    </div>
+                                    <div class="highlight-box text-muted bg-light py-2" style="border:none; cursor:default">
+                                        CERRAR
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3 d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                        <div class="small">
+                            <strong>Dato importante:</strong> Si el monto pagado es menor al total, el sistema guardará el resto como una deuda del cliente (crédito), siempre y cuando hayas seleccionado un cliente de la lista.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Clientes -->
+        <section id="clientes">
+            <div class="section-card">
+                <div class="section-header">Gestión de Clientes</div>
+                <div class="section-body">
+                    <p>Mantener una base de datos de tus clientes es fundamental para otorgar créditos y conocer los hábitos de compra de tus consumidores.</p>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-person-plus text-primary me-2"></i> Alta de Clientes</h6>
+                                <p class="small text-muted mb-0">Haz clic en el botón azul <strong>"+ Nuevo Cliente"</strong>. Solo necesitas su nombre y un teléfono de contacto para darlo de alta.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-pencil-square text-warning me-2"></i> Edición y Estado</h6>
+                                <p class="small text-muted mb-0">Puedes corregir datos usando el icono amarillo de <strong>Lápiz</strong>. También puedes desactivar clientes que ya no frecuenten el negocio.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6>¿Cómo agregar un cliente?</h6>
+                    <div class="interface-map">
+                        <div class="map-container d-flex justify-content-center align-items-center" style="min-height: 250px;">
+                            <div class="highlight-box shadow-lg" style="width: 400px; border-style: solid; background: white;">
+                                <div class="p-3">
+                                    <h6 class="fw-bold text-primary">VENTANA: NUEVO CLIENTE</h6>
+                                    <hr>
+                                    <div class="text-start mb-2">
+                                        <label class="small fw-bold">Nombre Completo:</label>
+                                        <div class="border p-2 bg-light rounded small">Ej: Juan Pérez</div>
+                                    </div>
+                                    <div class="text-start mb-3">
+                                        <label class="small fw-bold">Teléfono / Celular:</label>
+                                        <div class="border p-2 bg-light rounded small">Ej: 555-0123</div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <div class="highlight-box flex-fill text-white bg-secondary" style="border:none">CANCELAR</div>
+                                        <div class="highlight-box flex-fill text-white bg-primary" style="border:none">GUARDAR CLIENTE</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Importante:</strong> Un cliente registrado es indispensable para poder usar el módulo de <strong>Créditos</strong>. No puedes otorgar crédito a un "Cliente General".
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Créditos -->
+        <section id="creditos">
+            <div class="section-card">
+                <div class="section-header">Cuentas por Cobrar (Créditos)</div>
+                <div class="section-body">
+                    <p>Este módulo permite gestionar y recuperar el dinero de las ventas realizadas a crédito. Es vital para mantener el flujo de caja saludable.</p>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="p-3 border-start border-4 border-warning bg-white h-100 shadow-sm rounded-3">
+                                <h6 class="fw-bold text-warning"><i class="bi bi-piggy-bank me-2"></i> Deuda Total</h6>
+                                <p class="small text-muted mb-0">En la parte superior izquierda verás un cuadro amarillo que suma <strong>toda la deuda</strong> de todos tus clientes. Es tu indicador de recuperación pendiente.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border-start border-4 border-primary bg-white h-100 shadow-sm rounded-3">
+                                <h6 class="fw-bold text-primary"><i class="bi bi-printer me-2"></i> Estado de Cuenta</h6>
+                                <p class="small text-muted mb-0">En la tabla inferior, puedes usar el icono de la <strong>Impresora</strong> para generar un comprobante detallado de lo que el cliente debe hasta hoy.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6>¿Cómo registrar un Abono?</h6>
+                    <div class="interface-map">
+                        <div class="map-container">
+                            <div class="map-row">
+                                <!-- Cuadro de Deuda -->
+                                <div class="highlight-box" style="width: 30%; border-color: var(--warning); background: #fffbeb;">
+                                    <div>
+                                        <span class="text-warning small fw-bold">TOTAL PENDIENTE</span><br>
+                                        <span style="font-size: 18px;">$ 5,420.00</span>
+                                    </div>
+                                </div>
+                                <!-- Panel de Abono -->
+                                <div class="map-box flex-grow-1" style="border: 2px solid var(--primary); border-radius: 8px; padding: 10px; background: white;">
+                                    <div class="d-flex gap-2 mb-2">
+                                        <div class="highlight-box flex-grow-1">1. BUSCAR CLIENTE DEUDOR</div>
+                                        <div class="highlight-box" style="width: 100px;">2. MONTO $</div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <div class="highlight-box flex-grow-1">3. MÉTODO (EFECTIVO/TRANSF)</div>
+                                        <div class="highlight-box text-white bg-primary" style="width: 150px; border:none">REGISTRAR ABONO</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Tabla inferior -->
+                            <div class="highlight-box mt-2" style="height: 60px;">
+                                LISTADO DE CRÉDITOS DETALLADOS (Folio, Fecha, Saldo, Acciones)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Dato Importante:</strong> Al registrar un abono en <strong>Efectivo</strong>, este se sumará automáticamente al dinero que debes tener en caja para tu corte al final del día.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reportes -->
+        <section id="reportes">
+            <div class="section-card">
+                <div class="section-header">Reportes de Ventas e Historial</div>
+                <div class="section-body">
+                    <p>El módulo de reportes permite auditar todas las operaciones realizadas en el sistema. Puedes filtrar por fechas, folios o estado de la venta.</p>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-funnel text-primary me-2"></i> Filtros de Búsqueda</h6>
+                                <p class="small text-muted mb-0">Busca una venta específica por su <strong>Folio</strong> o consulta un rango de fechas (Desde/Hasta). También puedes filtrar por estado: Completada, Pendiente o Cancelada.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-file-earmark-arrow-down text-success me-2"></i> Exportación</h6>
+                                <p class="small text-muted mb-0">Descarga tus reportes en <strong>Excel o PDF</strong>. Al exportar, el sistema te preguntará si deseas un resumen simple o un reporte detallado con cada producto vendido.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-clock-history text-danger me-2"></i> Regla de 15 Minutos</h6>
+                                <p class="small text-muted mb-0">Los administradores pueden editar o cancelar una venta dentro de los primeros <strong>15 minutos</strong> posteriores a su creación para corregir errores inmediatos.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6>Acciones en el Historial:</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-bordered bg-light small">
+                            <thead>
+                                <tr class="text-center">
+                                    <th>Icono</th>
+                                    <th>Acción</th>
+                                    <th>Descripción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="text-center"><i class="bi bi-eye text-info"></i></td><td><strong>Ver Detalle</strong></td><td>Abre una ventana con el desglose de productos, subtotal, descuentos y montos pagados de esa venta.</td></tr>
+                                <tr><td class="text-center"><i class="bi bi-printer text-secondary"></i></td><td><strong>Reimprimir</strong></td><td>Permite volver a generar el ticket físico en cualquier momento.</td></tr>
+                                <tr><td class="text-center"><i class="bi bi-pencil text-warning"></i></td><td><strong>Editar</strong></td><td>Carga la venta de nuevo en el módulo de ventas (solo disponible los primeros 15 min).</td></tr>
+                                <tr><td class="text-center"><i class="bi bi-trash text-danger"></i></td><td><strong>Cancelar</strong></td><td>Anula la venta y <strong>devuelve automáticamente los productos al inventario</strong>.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="interface-map">
+                        <div class="map-container">
+                            <div class="highlight-box mb-2" style="height: 50px;">
+                                PANEL DE FILTROS: Folio | Fecha Inicio | Fecha Fin | Estado
+                            </div>
+                            <div class="d-flex gap-2 mb-2">
+                                <div class="highlight-box flex-fill" style="border-color: var(--primary);">CONSULTAR</div>
+                                <div class="highlight-box flex-fill" style="border-color: var(--success);">DESCARGAR EXCEL</div>
+                                <div class="highlight-box flex-fill" style="border-color: var(--danger);">DESCARGAR PDF</div>
+                            </div>
+                            <div class="highlight-box flex-grow-1" style="height: 100px;">
+                                TABLA DE RESULTADOS<br>
+                                <small class="text-muted">(Folio, Cliente, Total, Estado, Acciones)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="my-5 text-center text-muted">
+            <span class="px-3">------------------------------------------------------------</span>
+            <i class="bi bi-shield-shaded mx-2"></i>
+            <span class="px-3">------------------------------------------------------------</span>
+        </div>
+
+        <!-- Administración -->
+        <section id="admin">
+            <div class="section-card">
+                <div class="section-header">Módulo de Administración (Solo Administradores)</div>
+                <div class="section-body">
+                    <p>Estas opciones solo son visibles para usuarios con el rol de **Administrador**. Se accede a ellas mediante el menú desplegable en la barra superior.</p>
+                    
+                    <div class="row g-4 mt-2">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-box-seam text-primary me-2"></i> Gestión de Productos</h6>
+                                <p class="small text-muted">Aquí puedes dar de alta nuevos artículos, asignarles código de barras, precio de costo, precio de venta y su categoría correspondiente.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-boxes text-success me-2"></i> Inventario y Stock</h6>
+                                <p class="small text-muted">Controla las existencias reales. Puedes realizar ajustes de stock (entradas o salidas manuales) para corregir diferencias en el inventario.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-person-badge text-info me-2"></i> Usuarios del Sistema</h6>
+                                <p class="small text-muted">Administra quiénes tienen acceso al punto de venta. Puedes crear nuevos cajeros o administradores y asignarles sus contraseñas.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                                <h6 class="fw-bold"><i class="bi bi-gear-wide-connected text-secondary me-2"></i> Configuración del Negocio</h6>
+                                <p class="small text-muted">Personaliza el nombre de tu empresa, dirección, teléfono y el logotipo que aparecerá impreso en los tickets de venta.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center py-5 text-muted small border-top mx-5">
+            &copy; 2026 Manual de Uso de Punto de Venta. Todos los derechos reservados.
+        </footer>
+    </main>
+
+    <script>
+        document.querySelectorAll('a.nav-link').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

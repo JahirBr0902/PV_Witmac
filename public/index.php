@@ -76,6 +76,9 @@ checkAuth();
                         <?php echo htmlspecialchars($_SESSION['usuario_nombre']); ?>
                         <span class="badge bg-light text-dark ms-1"><?php echo $_SESSION['rol']; ?></span>
                     </span>
+                    <button class="btn btn-outline-light btn-sm me-2" onclick="window.open('manual/', '_blank')">
+                        <i class="bi bi-question-circle"></i> Ayuda
+                    </button>
                     <button class="btn btn-outline-light btn-sm" id="btnLogout">
                         <i class="bi bi-box-arrow-right"></i> Salir
                     </button>
